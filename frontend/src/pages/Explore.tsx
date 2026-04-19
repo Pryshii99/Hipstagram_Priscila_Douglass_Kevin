@@ -4,11 +4,20 @@ import { postsAPI } from '../api/clientes';
 import { Publicacion } from '../types';
 import { useToast } from '../context/ToastContext';
 
+// ── Función de utilidad para formatear el tiempo ──
+function timeAgo(d: string) {
+  const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
+  if (s < 60) return 'ahora';
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  return `${Math.floor(s / 86400)}d`;
+}
+
 export default function ExplorePage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const [posts,   setPosts]   = useState<Publicacion[]>([]);
-  const [page,    setPage]    = useState(1);
+  const [posts, setPosts] = useState<Publicacion[]>([]);
+  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
 
@@ -18,44 +27,64 @@ export default function ExplorePage() {
       const { data } = await postsAPI.getExplore(p);
       const arr: Publicacion[] = data.posts ?? data ?? [];
       p === 1 ? setPosts(arr) : setPosts(prev => [...prev, ...arr]);
-      setHasMore(arr.length === 10); setPage(p);
-    } catch { showToast('Error al cargar.','error'); }
-    finally { setLoading(false); }
+      setHasMore(arr.length === 10);
+      setPage(p);
+    } catch {
+      showToast('Error al cargar.', 'error');
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { load(1); }, []);
 
-  const medals = ['🥇','🥈','🥉'];
+  const medals = ['🥇', '🥈', '🥉'];
 
   return (
-    <div className="hip-feed">
-      <h5 className="fw-bold mb-3" style={{ color:'var(--hip-dark)' }}>
-        <i className="bi bi-compass-fill me-2"></i>Top Likes — Lo más popular
-      </h5>
+    <div className="hip-explore-container">
+      {/* Encabezado discreto estilo Instagram */}
+      <div className="px-2 py-3">
+        <h6 className="fw-bold mb-0 text-uppercase" style={{ letterSpacing: '1px', fontSize: '0.8rem', color: '#8e8e8e' }}>
+          <i className="bi bi-grid-3x3 me-2"></i>Publicaciones Destacadas
+        </h6>
+      </div>
 
-      {loading && posts.length === 0 && <div className="hip-spin"><div className="spinner-border text-primary"/></div>}
+      {loading && posts.length === 0 && (
+        <div className="hip-spin"><div className="spinner-border text-primary" /></div>
+      )}
 
-      <div className="hip-grid">
+      {/* GRID DE 3 COLUMNAS PEGADAS */}
+      <div className="insta-grid">
         {posts.map((p, i) => (
-          <div key={p.id} className="hip-grid-item" onClick={() => navigate(`/post/${p.id}`)}>
-            {p.imagen_url
-              ? <img src={p.imagen_url} alt="" loading="lazy" />
-              : <div style={{ width:'100%',height:'100%',background:'#cdd8e5',display:'flex',alignItems:'center',justifyContent:'center' }}>
-                  <i className="bi bi-image" style={{ fontSize:'2rem',color:'#aab' }}/>
+          <div key={p.id} className="insta-item" onClick={() => navigate(`/post/${p.id}`)}>
+            {p.imagen_url ? (
+              <img src={`http://localhost:3000${p.imagen_url}`} alt="" loading="lazy" />
+            ) : (
+              <div className="insta-placeholder">
+                <i className="bi bi-image" />
+              </div>
+            )}
+
+            {/* OVERLAY CON DETALLES (Aparece en Hover) */}
+            <div className="insta-overlay">
+              <div className="d-flex flex-column align-items-center justify-content-center h-100">
+                <div className="fw-bold text-white mb-1">
+                  <i className="bi bi-heart-fill me-2"></i>{p.likes_count}
                 </div>
-            }
-            <div className="hip-grid-ov">
-              {medals[i] && <span style={{ fontSize:'1.3rem' }}>{medals[i]}</span>}
-              <span><i className="bi bi-hand-thumbs-up-fill me-1"></i>{p.likes_count}</span>
+                <div className="small text-white-50">
+                  @{p.nombre_usuario} • {timeAgo(p.fecha_creacion)}
+                </div>
+                {medals[i] && <div className="mt-2" style={{ fontSize: '1.5rem' }}>{medals[i]}</div>}
+              </div>
             </div>
           </div>
         ))}
       </div>
 
       {hasMore && !loading && (
-        <div className="text-center mt-3">
-          <button className="btn btn-outline-primary rounded-pill px-4" onClick={() => load(page+1)}>
-            <i className="bi bi-arrow-down-circle me-2"></i>Ver más
+        <div className="text-center my-4">
+          <button className="btn btn-sm btn-outline-secondary rounded-pill px-4" onClick={() => load(page + 1)}>
+            Cargar más
           </button>
         </div>
       )}

@@ -512,3 +512,128 @@ textarea.form-control:focus {
   .hip-feed { padding: 10px 4px; }
   .hip-nav-btn span { display: none; }
 }
+/* Contenedor principal para centrar la cuadrícula en pantallas grandes */
+.hip-explore-container {
+  max-width: 935px; /* Ancho estándar de Instagram Desktop */
+  margin: 0 auto;
+}
+
+/* La magia de las 3 columnas */
+.insta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Exactamente 3 columnas siempre */
+  gap: 3px; /* Espacio mínimo "pegado" estilo Instagram */
+  padding: 0 3px;
+}
+
+/* Items cuadrados perfectos */
+.insta-item {
+  position: relative;
+  aspect-ratio: 1 / 1; /* Hace que el cuadro sea cuadrado sin importar el ancho */
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.insta-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Recorta la imagen para llenar el cuadrado sin deformarse */
+  display: block;
+}
+
+/* Placeholder para cuando no hay imagen */
+.insta-placeholder {
+  width: 100%;
+  height: 100%;
+  background-color: #262626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+}
+
+/* Overlay que solo se ve en PC (hover) o al tocar en móvil brevemente */
+.insta-overlay {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.insta-item:hover .insta-overlay {
+  opacity: 1;
+}
+
+/* Responsividad: En pantallas muy pequeñas, reducimos el gap */
+@media (max-width: 768px) {
+  .insta-grid {
+    gap: 1px; /* Casi pegadas totalmente en móvil */
+    padding: 0;
+  }
+}
+/* Contenedor centralizado */
+.insta-feed-container {
+  max-width: 600px; /* Ancho máximo de un post de Instagram */
+  margin: 0 auto;
+}
+
+/* La tarjeta del Post */
+.insta-card {
+  background-color: #000;
+  border: 1px solid #262626;
+  border-radius: 8px;
+  transition: border-color 0.2s ease, transform 0.1s ease;
+  cursor: pointer;
+}
+
+/* EL CONTORNO AMARILLO QUE TE GUSTA */
+.insta-card:hover {
+  border-color: var(--hip-primary); /* Tu amarillo #ffb300 */
+  box-shadow: 0 0 15px rgba(255, 179, 0, 0.2);
+}
+
+/* Imagen que respeta su proporción original o 1:1 */
+.insta-card-img-container {
+  background-color: #1a1a1a;
+  min-height: 300px;
+  width: 100%;
+}
+
+.insta-card-img-container img {
+  width: 100%;
+  display: block;
+  object-fit: contain; /* Para que se vea la imagen completa como en Instagram */
+}
+
+/* Avatar con anillo estilo "History" */
+.insta-avatar-ring {
+  width: 42px;
+  height: 42px;
+  padding: 2px;
+  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  border-radius: 50%;
+}
+
+.insta-avatar-bg {
+  width: 100%;
+  height: 100%;
+  background-color: #000;
+  border-radius: 50%;
+  border: 2px solid #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: white;
+}
+
+/* Descripción */
+.insta-caption {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: #efefef;
+}

@@ -64,7 +64,7 @@ router.get('/feed', requireAuth, async (req, res) => {
   }
 });
 
-// ── GET /posts/explore ──
+// ── GET /posts/explore (CORREGIDO) ──
 router.get('/explore', requireAuth, async (req, res) => {
   const page  = parseInt(req.query.page  || '1');
   const limit = parseInt(req.query.limit || '10');
@@ -77,7 +77,13 @@ router.get('/explore', requireAuth, async (req, res) => {
         p.id, p.descripcion, p.imagen_url, p.likes_count, p.dislikes_count,
         p.fecha_creacion, u.nombre_usuario,
         (SELECT COUNT(*) FROM comentarios c WHERE c.publicacion_id = p.id) AS total_comentarios,
-        (SELECT tipo_voto FROM votos v WHERE v.publicacion_id=p.id AND v.usuario_id=$3) AS mi_voto
+        (SELECT tipo_voto FROM votos v WHERE v.publicacion_id=p.id AND v.usuario_id=$3) AS mi_voto,
+        -- SE AGREGA LA SUBQUERY PARA TRAER LOS HASHTAGS --
+        COALESCE(
+          (SELECT array_agg(h.nombre) FROM publicacion_hashtags ph
+           JOIN hashtags h ON h.id = ph.hashtag_id 
+           WHERE ph.publicacion_id = p.id), '{}'
+        ) AS hashtags
       FROM publicacion p
       JOIN usuarios u ON u.id = p.usuario_id
       WHERE p.estado = 'PUBLICADO'
@@ -87,7 +93,7 @@ router.get('/explore', requireAuth, async (req, res) => {
 
     return res.json({ posts: result.rows });
   } catch (err) {
-    console.error(err);
+    console.error('Error en explore:', err);
     return res.status(500).json({ error: 'Error al obtener explorar.' });
   }
 });
