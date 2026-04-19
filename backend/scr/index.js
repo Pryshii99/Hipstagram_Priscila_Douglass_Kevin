@@ -8,6 +8,7 @@ const rateLimit    = require('express-rate-limit');
 const authRoutes  = require('./routes/auth');
 const postRoutes  = require('./routes/posts');
 const userRoutes  = require('./routes/users');
+const adminRoutes = require('./routes/admin');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -37,9 +38,7 @@ app.use('/api', rateLimit({
 app.use('/api/v1/auth',  authRoutes);
 app.use('/api/v1/posts', postRoutes);
 app.use('/api/v1/users', userRoutes);
-
-
-app.use('/api/v1/admin', userRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 
 app.get('/health', (_, res) => {

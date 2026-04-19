@@ -39,7 +39,7 @@ export default function ExplorePage() {
         {posts.map((p, i) => (
           <div key={p.id} className="hip-grid-item" onClick={() => navigate(`/post/${p.id}`)}>
             {p.imagen_url
-              ? <img src={p.imagen_url} alt="" loading="lazy" />
+             ? <img src={`http://localhost:3000${p.imagen_url}`} alt="" loading="lazy" />
               : <div style={{ width:'100%',height:'100%',background:'#cdd8e5',display:'flex',alignItems:'center',justifyContent:'center' }}>
                   <i className="bi bi-image" style={{ fontSize:'2rem',color:'#aab' }}/>
                 </div>
