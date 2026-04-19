@@ -78,7 +78,6 @@ router.get('/explore', requireAuth, async (req, res) => {
         p.fecha_creacion, u.nombre_usuario,
         (SELECT COUNT(*) FROM comentarios c WHERE c.publicacion_id = p.id) AS total_comentarios,
         (SELECT tipo_voto FROM votos v WHERE v.publicacion_id=p.id AND v.usuario_id=$3) AS mi_voto,
-        -- SE AGREGA LA SUBQUERY PARA TRAER LOS HASHTAGS --
         COALESCE(
           (SELECT array_agg(h.nombre) FROM publicacion_hashtags ph
            JOIN hashtags h ON h.id = ph.hashtag_id 
@@ -204,7 +203,7 @@ router.get('/:id', requireAuth, async (req, res) => {
   }
 });
 
-// ── POST /posts ──
+// ── POST /posts (MÓDULO DE AUTO-MODERACIÓN INTEGRADO) ──
 router.post('/', requireAuth, upload.single('imagen'), async (req, res) => {
   const userId = req.user.sub;
   const ip     = req.ip;
@@ -225,11 +224,39 @@ router.post('/', requireAuth, upload.single('imagen'), async (req, res) => {
   try {
     await client.query('BEGIN');
 
-   
-   const pRes = await client.query("INSERT INTO publicacion (usuario_id, imagen_url, descripcion, estado) VALUES ($1, $2, $3, 'PENDIENTE') RETURNING *", [userId, imagenUrl, descripcion || null]); 
-   
-   const post = pRes.rows[0];
+    // 1. --- LOGICA DE AUTO-MODERACIÓN ---
+    let estadoPost = 'PENDIENTE'; 
+    let bannedWords = [];
+    
+    // Obtenemos la lista actualizada desde la BD
+    try {
+        const configRes = await client.query("SELECT detalles FROM configuracion WHERE clave = 'forbidden_words'");
+        if (configRes.rows[0] && configRes.rows[0].detalles.banned) {
+            bannedWords = configRes.rows[0].detalles.banned.map(w => w.toLowerCase());
+        }
+    } catch (err) {
+        console.error('Error al leer palabras prohibidas:', err);
+    }
 
+    // Comparamos el texto del usuario contra la lista negra
+    const descLower = descripcion.toLowerCase();
+    const contieneProhibidas = bannedWords.some(word => 
+        descLower.includes(word) || hashtags.some(h => h.includes(word))
+    );
+
+    // Si detectamos contenido indebido, cambiamos su destino
+    if (contieneProhibidas) {
+        estadoPost = 'BLOQUEADO'; 
+    }
+
+    // 2. --- INSERCIÓN EN BD ---
+    const pRes = await client.query(
+        "INSERT INTO publicacion (usuario_id, imagen_url, descripcion, estado) VALUES ($1, $2, $3, $4) RETURNING *", 
+        [userId, imagenUrl, descripcion || null, estadoPost]
+    );
+    const post = pRes.rows[0];
+
+    // 3. --- GUARDADO DE HASHTAGS ---
     await client.query('SAVEPOINT sp_hashtags');
     try {
       for (const nombre of hashtags) {
@@ -250,19 +277,39 @@ router.post('/', requireAuth, upload.single('imagen'), async (req, res) => {
       await client.query('ROLLBACK TO SAVEPOINT sp_hashtags');
     }
 
+    // 4. --- AUDITORÍA DETALLADA ---
     await client.query(
       `INSERT INTO auditoria (usuario_id, accion, tabla_afectada, detalles, direccion_ip)
-       VALUES ($1,'POST_CREADO','publicacion',$2,$3)`,
-      [userId, JSON.stringify({ post_id: post.id }), ip]
+       VALUES ($1, $2, 'publicacion', $3, $4)`,
+      [
+          userId, 
+          contieneProhibidas ? 'POST_AUTO_BLOQUEADO' : 'POST_CREADO', 
+          JSON.stringify({ post_id: post.id, motivo: contieneProhibidas ? 'Filtro automático' : 'Normal' }), 
+          ip
+      ]
     );
 
     await client.query('COMMIT');
 
-    return res.status(201).json({ message: 'Publicación creada.', post });
+    // 5. --- RESPUESTA AL FRONTEND ---
+    if (contieneProhibidas) {
+        return res.status(403).json({ error: 'Tu publicación ha sido retenida por contener lenguaje no permitido.' });
+    }
+
+    return res.status(201).json({ message: 'Publicación creada y enviada a revisión.', post });
+
   } catch (err) {
     await client.query('ROLLBACK');
+    
+    // Limpieza: Si falla la BD, borramos la imagen que multer ya había guardado
+    try {
+        if (req.file) fs.unlinkSync(req.file.path);
+    } catch (e) {
+        console.error('Error al limpiar archivo huerfano:', e);
+    }
+
     console.error('Error al crear post:', err);
-    return res.status(500).json({ error: 'Error al crear la publicación.' });
+    return res.status(500).json({ error: 'Error al procesar la publicación.' });
   } finally {
     client.release();
   }

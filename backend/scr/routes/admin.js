@@ -233,14 +233,61 @@ router.get('/audit', requireAuth, requireRole('ADMIN'), async (req, res) => {
 // 4. CONFIGURACIÓN (PALABRAS PROHIBIDAS)
 // ============================================================================
 
-// GET /api/v1/admin/config/words -> Gestión de lista JSON
-router.get('/config/words', requireAuth, requireRole('ADMIN'), async (req, res) => {
+// ── GET /api/v1/admin/banned-words ──
+// El Frontend consulta esta ruta al abrir la pestaña
+router.get('/banned-words', requireAuth, requireRole('ADMIN'), async (req, res) => {
     try {
         const result = await query('SELECT detalles FROM configuracion WHERE clave = $1', ['forbidden_words']);
-        res.json(result.rows[0]?.detalles || { words: [] });
+        // Enviamos la propiedad "banned" que espera el frontend
+        res.json(result.rows[0]?.detalles || { banned: [] });
     } catch {
-        res.json({ words: [] }); 
+        res.json({ banned: [] }); 
     }
 });
+
+// ── LÓGICA UNIVERSAL PARA GUARDAR PALABRAS ──
+const guardarPalabras = async (req, res) => {
+    // El frontend envía el array dentro de la propiedad "banned"
+    const { banned } = req.body;
+    const adminId = req.user.sub;
+
+    if (!Array.isArray(banned)) {
+        return res.status(400).json({ error: 'El JSON debe contener un arreglo llamado "banned".' });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Guardamos en la base de datos
+        await client.query(`
+            INSERT INTO configuracion (clave, detalles) 
+            VALUES ('forbidden_words', $1) 
+            ON CONFLICT (clave) 
+            DO UPDATE SET detalles = EXCLUDED.detalles
+        `, [JSON.stringify({ banned })]);
+
+        // Auditoría requerida por UPANA
+        await client.query(
+            `INSERT INTO auditoria (usuario_id, accion, tabla_afectada, detalles, direccion_ip)
+             VALUES ($1, 'ACTUALIZAR_PALABRAS_PROHIBIDAS', 'configuracion', $2, $3)`,
+            [adminId, JSON.stringify({ accion: 'actualización de filtro', cantidad: banned.length }), req.ip]
+        );
+
+        await client.query('COMMIT');
+        res.json({ message: 'Lista de palabras prohibidas actualizada correctamente.', banned });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('Error al guardar palabras prohibidas:', err);
+        res.status(500).json({ error: 'Fallo al actualizar la configuración.' });
+    } finally {
+        client.release();
+    }
+};
+
+// Cubrimos todas las opciones (POST, PUT, PATCH) para el botón de guardar
+router.post('/banned-words', requireAuth, requireRole('ADMIN'), guardarPalabras);
+router.put('/banned-words', requireAuth, requireRole('ADMIN'), guardarPalabras);
+router.patch('/banned-words', requireAuth, requireRole('ADMIN'), guardarPalabras);
 
 module.exports = router;
