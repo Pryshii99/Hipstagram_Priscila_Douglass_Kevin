@@ -86,8 +86,14 @@ export default function PostPage() {
           </div>
         </div>
         {post.imagen_url
-          ? <img src={post.imagen_url} alt="" className="hip-card-img" style={{ cursor:'default' }}/>
-          : <div className="hip-card-img-ph"><i className="bi bi-image"/></div>}
+  ? <img 
+      src={`http://localhost:3000${post.imagen_url}`} 
+      alt="" 
+      className="hip-card-img" 
+      style={{ cursor:'default' }}
+    />
+  : <div className="hip-card-img-ph"><i className="bi bi-image"/></div>
+}
         <div className="hip-card-body">
           {post.hashtags?.map(h => (
             <span key={h} className="hip-tag" onClick={() => navigate(`/search?q=${h}&mode=hashtag`)}>{h}</span>
