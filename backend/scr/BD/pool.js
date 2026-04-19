@@ -4,7 +4,9 @@ require('dotenv').config();
 const pool = new Pool({
   host:     process.env.DB_HOST     || 'localhost',
   port:     parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME     || 'hipstagram_db',
+  // Cambiamos DB_NAME por DB_DATABASE para que coincida con tu .env
+  // Y cambiamos el fallback por 'Hisptagram' (con la p)
+  database: process.env.DB_DATABASE || 'Hisptagram', 
   user:     process.env.DB_USER     || 'postgres',
   password: process.env.DB_PASSWORD || '',
   max: 10,                  
