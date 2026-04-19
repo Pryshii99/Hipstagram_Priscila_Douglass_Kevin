@@ -219,11 +219,7 @@ router.post('/', requireAuth, upload.single('imagen'), async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    const pRes = await client.query(
-      `INSERT INTO publicacion (usuario_id, imagen_url, descripcion, estado)
-       VALUES ($1, $2, $3, 'PUBLICADO') RETURNING *`,
-      [userId, imagenUrl, descripcion || null]
-    );
+   const pRes = await client.query("INSERT INTO publicacion (usuario_id, imagen_url, descripcion, estado) VALUES ($1, $2, $3, 'EN_REVISION') RETURNING *", [userId, imagenUrl, descripcion || null]);
     const post = pRes.rows[0];
 
     await client.query('SAVEPOINT sp_hashtags');
@@ -304,11 +300,22 @@ router.post('/votes/:postId', requireAuth, async (req, res) => {
   const client = await require('../BD/pool').pool.connect();
   try {
     await client.query('BEGIN');
-
-    const pRes = await client.query('SELECT usuario_id FROM publicacion WHERE id=$1', [postId]);
-    if (!pRes.rows[0]) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Publicación no encontrada.' }); }
-    if (pRes.rows[0].usuario_id === userId) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'No puedes votar tu propia publicación.' }); }
-
+const pRes = await client.query(
+      "SELECT usuario_id FROM publicacion WHERE id=$1 AND estado='PUBLICADO'", 
+      [postId]
+    );
+    
+    // 2. Si no existe o no está publicado, bloqueamos
+    if (!pRes.rows[0]) { 
+      await client.query('ROLLBACK'); 
+      return res.status(404).json({ error: 'Publicación no encontrada o en revisión.' }); 
+    }
+    
+    // 3. Si intentas votar tu propio post, bloqueamos
+    if (pRes.rows[0].usuario_id === userId) { 
+      await client.query('ROLLBACK'); 
+      return res.status(400).json({ error: 'No puedes votar tu propia publicación.' }); 
+    }
     const vRes = await client.query(
       'SELECT tipo_voto FROM votos WHERE usuario_id=$1 AND publicacion_id=$2 FOR UPDATE',
       [userId, postId]
