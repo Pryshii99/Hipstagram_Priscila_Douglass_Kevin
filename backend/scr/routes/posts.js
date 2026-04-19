@@ -225,8 +225,10 @@ router.post('/', requireAuth, upload.single('imagen'), async (req, res) => {
   try {
     await client.query('BEGIN');
 
-   const pRes = await client.query("INSERT INTO publicacion (usuario_id, imagen_url, descripcion, estado) VALUES ($1, $2, $3, 'EN_REVISION') RETURNING *", [userId, imagenUrl, descripcion || null]);
-    const post = pRes.rows[0];
+   
+   const pRes = await client.query("INSERT INTO publicacion (usuario_id, imagen_url, descripcion, estado) VALUES ($1, $2, $3, 'PENDIENTE') RETURNING *", [userId, imagenUrl, descripcion || null]); 
+   
+   const post = pRes.rows[0];
 
     await client.query('SAVEPOINT sp_hashtags');
     try {
