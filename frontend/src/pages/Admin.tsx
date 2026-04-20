@@ -23,6 +23,7 @@ export default function AdminPage() {
   const [userQ,   setUserQ]   = useState('');
   const [loading, setLoading] = useState(false);
 
+  // 🚀 Mejoramos el useEffect para que responda a cambios de pestaña
   useEffect(() => {
     if (tab==='posts') loadPosts();
     if (tab==='users') loadUsers();
@@ -32,36 +33,73 @@ export default function AdminPage() {
 
   async function loadPosts() {
     setLoading(true);
-    try { const { data } = await adminAPI.getPosts(filter); setPosts(data.posts ?? []); }
-    catch { showToast('Error.','error'); }
+    try { 
+      const response = await adminAPI.getPosts(filter); 
+      // Soporte para data.posts o data (si el wrapper ya devuelve el body)
+      const data = response.data || response;
+      setPosts(data.posts ?? []); 
+    }
+    catch (err) { console.error(err); showToast('Error al cargar publicaciones.','error'); }
     finally { setLoading(false); }
   }
+
   async function loadUsers() {
     setLoading(true);
-    try { const { data } = await adminAPI.getUsers(userQ); setUsers(data.users ?? []); }
-    catch {showToast('Error.','error');}
+    try { 
+      const response = await adminAPI.getUsers(userQ); 
+      const data = response.data || response;
+      // Buscamos tanto en 'users' como en 'usuarios' (como pusimos en admin.js)
+      setUsers(data.users || data.usuarios || []); 
+    }
+    catch (err) { console.error(err); showToast('Error al cargar usuarios.','error');}
     finally { setLoading(false); }
   }
+
   async function loadAudit() {
     setLoading(true);
-    try { const { data } = await adminAPI.getAudit(); setAudit(data.registros ?? []); }
-    catch {showToast('Error.','error');}
+    try { 
+      const response = await adminAPI.getAudit(); 
+      const data = response.data || response;
+      // Buscamos en todas las llaves posibles que configuramos en el backend
+      setAudit(data.audit_logs || data.registros || data.auditoria || []); 
+    }
+    catch (err) { console.error(err); showToast('Error al cargar auditoría.','error');}
     finally { setLoading(false); }
   }
+
   async function loadBanned() {
-    try { const { data } = await adminAPI.getBanned(); setBanned(JSON.stringify(data,null,2)); }
-    catch { showToast('Error.','error');}
+    try { 
+      const response = await adminAPI.getBanned(); 
+      const data = response.data || response;
+      setBanned(JSON.stringify(data, null, 2)); 
+    }
+    catch (err) { console.error(err); showToast('Error al cargar filtro.','error');}
   }
+
   async function moderate(id: number, action: string) {
-    try { await adminAPI.moderatePost(id, action); showToast('Moderado ✓'); loadPosts(); }
-    catch { showToast('Error.','error'); }
+    try { 
+      await adminAPI.moderatePost(id, action); 
+      showToast('Acción realizada ✓'); 
+      loadPosts(); 
+    }
+    catch { showToast('Error al moderar.','error'); }
   }
+
   async function toggleUser(id: number, activo: boolean) {
-    try { await adminAPI.setUserStatus(id, !activo); showToast(`Usuario ${activo?'desactivado':'activado'} ✓`); loadUsers(); }
-    catch { showToast('Error.','error'); }
+    try { 
+      await adminAPI.setUserStatus(id, !activo); 
+      showToast(`Usuario ${activo?'desactivado':'activado'} ✓`); 
+      loadUsers(); 
+    }
+    catch { showToast('Error al cambiar estado del usuario.','error'); }
   }
+
   async function saveBanned() {
-    try { JSON.parse(banned); await adminAPI.setBanned(JSON.parse(banned)); showToast('Lista actualizada ✓'); }
+    try { 
+      const json = JSON.parse(banned); 
+      await adminAPI.setBanned(json); 
+      showToast('Lista actualizada ✓'); 
+    }
     catch { showToast('JSON inválido.','error'); }
   }
 
@@ -121,14 +159,14 @@ export default function AdminPage() {
               <div className="hip-card-body">
                 {p.descripcion && <p className="hip-desc mb-2">{p.descripcion}</p>}
                 <div className="d-flex gap-2 flex-wrap">
-                  {filter!=='PUBLICADO' && (
+                  {p.estado !== 'PUBLICADO' && (
                     <button className="btn btn-sm btn-success rounded-pill" onClick={() => moderate(p.id,'approve')}>
                       <i className="bi bi-check-lg me-1"></i>Aprobar
                     </button>
                   )}
                   <button className="btn btn-sm btn-danger rounded-pill"
-                    onClick={() => moderate(p.id, filter==='PUBLICADO'?'block':'reject')}>
-                    <i className="bi bi-x-lg me-1"></i>{filter==='PUBLICADO'?'Bloquear':'Rechazar'}
+                    onClick={() => moderate(p.id, p.estado==='PUBLICADO'?'block':'reject')}>
+                    <i className="bi bi-x-lg me-1"></i>{p.estado==='PUBLICADO'?'Bloquear':'Rechazar'}
                   </button>
                 </div>
               </div>
@@ -207,7 +245,8 @@ export default function AdminPage() {
               {audit.map(a => (
                 <tr key={a.id}>
                   <td><small>{timeStr(a.fecha_creacion)}</small></td>
-                  <td>{a.usuario_id ? `@${a.nombre_usuario ?? a.usuario_id}` : <span className="text-muted">[sistema]</span>}</td>
+                  {/* Corregimos el mapeo para mostrar el nombre_usuario que viene del JOIN */}
+                  <td>{a.nombre_usuario ? `@${a.nombre_usuario}` : <span className="text-muted">[sistema]</span>}</td>
                   <td><span className="badge bg-secondary">{a.accion}</span></td>
                   <td><small>{a.tabla_afectada ?? '—'}</small></td>
                   <td><small>{a.direccion_ip ?? '—'}</small></td>
