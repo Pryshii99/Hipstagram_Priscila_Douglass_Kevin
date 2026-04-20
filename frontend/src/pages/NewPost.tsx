@@ -22,7 +22,8 @@ export default function NewPostPage() {
   function pickFile(f: File | null | undefined) {
     if (!f) return;
     if (f.size > 5*1024*1024) { showToast('El archivo supera 5 MB.','error'); return; }
-    if (!['image/jpeg','image/png','image/webp'].includes(f.type)) {
+    // Solución al error de includes en strings (usando indexOf)
+    if (['image/jpeg','image/png','image/webp'].indexOf(f.type) === -1) {
       showToast('Solo JPG, PNG o WebP.','error'); return;
     }
     setFile(f); setPreview(URL.createObjectURL(f));
@@ -33,7 +34,11 @@ export default function NewPostPage() {
       e.preventDefault();
       let t = tagInput.trim().toLowerCase();
       if (!t.startsWith('#')) t = '#' + t;
-      if (!tags.includes(t) && tags.length < MAX_TAGS) setTags(p => [...p, t]);
+      
+      // Solución al error de includes en arreglos (usando indexOf)
+      if (tags.indexOf(t) === -1 && tags.length < MAX_TAGS) {
+        setTags(p => [...p, t]);
+      }
       setTagInput('');
     }
   }
@@ -46,12 +51,18 @@ export default function NewPostPage() {
     fd.append('descripcion', desc);
     fd.append('hashtags', JSON.stringify(tags));
     setLoading(true);
+    
     try {
       await postsAPI.create(fd);
       showToast('¡Publicación enviada! Aparecerá en el feed.');
       navigate('/feed');
-    } catch { showToast('Error al publicar.','error'); }
-    finally { setLoading(false); }
+    } catch (error: any) { 
+      // Interceptamos el mensaje específico que viene desde posts.js en el backend
+      const backendError = error.response?.data?.error;
+      showToast(backendError || 'Error al publicar.', 'error'); 
+    } finally { 
+      setLoading(false); 
+    }
   }
 
   return (

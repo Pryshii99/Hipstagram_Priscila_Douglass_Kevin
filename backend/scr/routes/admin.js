@@ -285,6 +285,55 @@ const guardarPalabras = async (req, res) => {
     }
 };
 
+
+// ── 5.C LÓGICA UNIVERSAL PARA BLOQUEAR POSTS YA PUBLICADOS ──
+// Requerido por el alcance funcional del rol ADMIN 
+const bloquearPost = async (req, res) => {
+    const postId = parseInt(req.params.id);
+    const adminId = req.user.sub;
+    const ip = req.ip;
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Verificamos existencia
+        const pRes = await client.query('SELECT id FROM publicacion WHERE id = $1', [postId]);
+        if (!pRes.rows[0]) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Publicación no encontrada.' });
+        }
+
+        // Actualizamos a BLOQUEADO
+        const updateRes = await client.query(
+            "UPDATE publicacion SET estado = 'BLOQUEADO' WHERE id = $1 RETURNING *",
+            [postId]
+        );
+
+        // Registro obligatorio en auditoría para el rol ADMIN [cite: 149, 208]
+        await client.query(
+            `INSERT INTO auditoria (usuario_id, accion, tabla_afectada, detalles, direccion_ip)
+             VALUES ($1, 'BLOQUEAR_POST', 'publicacion', $2, $3)`,
+            [adminId, JSON.stringify({ post_id: postId, anterior_estado: 'PUBLICADO' }), ip]
+        );
+
+        await client.query('COMMIT');
+        res.json({ message: 'Publicación bloqueada con éxito.', post: updateRes.rows[0] });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('Error al bloquear post:', err);
+        res.status(500).json({ error: 'Fallo al bloquear la publicación.' });
+    } finally {
+        client.release();
+    }
+};
+
+// Definimos la ruta para coincidir con lo que pide tu Frontend (POST /block)
+router.post('/posts/:id/block', requireAuth, requireRole('ADMIN'), bloquearPost);
+// Por seguridad, agregamos soporte para otros métodos comunes
+router.put('/posts/:id/block', requireAuth, requireRole('ADMIN'), bloquearPost);
+router.patch('/posts/:id/block', requireAuth, requireRole('ADMIN'), bloquearPost);
+
 // Cubrimos todas las opciones (POST, PUT, PATCH) para el botón de guardar
 router.post('/banned-words', requireAuth, requireRole('ADMIN'), guardarPalabras);
 router.put('/banned-words', requireAuth, requireRole('ADMIN'), guardarPalabras);
