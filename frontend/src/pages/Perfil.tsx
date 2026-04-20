@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { usersAPI } from '../api/clientes';
+// Asegúrate de importar postsAPI o el cliente que uses para las publicaciones
+import { usersAPI, postsAPI } from '../api/clientes';
 import { useAuth }  from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { Usuario, Publicacion } from '../types';
+
+// 1. SOLUCIÓN AL ERROR DE ENV: 
+const BASE_URL = 'http://localhost:3000';
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -13,12 +17,43 @@ export default function ProfilePage() {
   const [posts,   setPosts]   = useState<Publicacion[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // 2. SOLUCIÓN AL ERROR DE FINALLY:
   useEffect(() => {
     usersAPI.me()
-      .then(({ data }) => { setProfile(data.user ?? data); setPosts(data.posts ?? []); })
-      .catch(() => showToast('Error al cargar el perfil.','error'))
-      .finally(() => setLoading(false));
+      .then(({ data }) => { 
+        setProfile(data.user ?? data); 
+        setPosts(data.posts ?? []); 
+        setLoading(false); // ← Termina de cargar si hay éxito
+      })
+      .catch(() => {
+        showToast('Error al cargar el perfil.', 'error');
+        setLoading(false); // ← Termina de cargar si hay error
+      });
   }, []);
+
+  // 3. 🚀 LÓGICA DE ELIMINACIÓN Y CAPTURA DE ERROR DE LLAVE FORÁNEA (DBA) 🚀
+  const handleDeletePost = async (postId: number, e: React.MouseEvent) => {
+    e.stopPropagation(); // Evita que al hacer clic en borrar, te lleve al detalle de la foto
+    
+    if (!window.confirm('¿Estás seguro de que deseas eliminar esta publicación?')) return;
+
+    try {
+      // Llamada a tu API (asegúrate de que el método se llame delete o deletePost en clientes.ts)
+      await postsAPI.remove(postId);
+      
+      showToast('Publicación eliminada correctamente.');
+      // Actualizamos el estado para quitar la foto de la cuadrícula inmediatamente
+      setPosts(prevPosts => prevPosts.filter(p => p.id !== postId)); 
+      
+    } catch (error: any) {
+      // Captura del error de restricción RESTRICT de la base de datos
+      if (error.response?.status === 409 || error.response?.status === 400) {
+        showToast('No se puede eliminar porque existen registros dependientes (comentarios o likes).', 'error');
+      } else {
+        showToast('Error al intentar eliminar la publicación.', 'error');
+      }
+    }
+  };
 
   if (loading) return <div className="hip-spin"><div className="spinner-border text-primary"/></div>;
 
@@ -75,17 +110,45 @@ export default function ProfilePage() {
         {posts.map(p => (
           <div key={p.id} className="hip-grid-item" onClick={() => navigate(`/post/${p.id}`)}>
             {p.imagen_url
-              ? <img src={p.imagen_url} alt="" loading="lazy"/>
+              ? <img 
+                  src={`${BASE_URL}${p.imagen_url}`} 
+                  alt="" 
+                  loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.parentElement!.classList.add('img-error');
+                  }}
+                />
               : <div style={{ width:'100%',height:'100%',background:'#cdd8e5',display:'flex',alignItems:'center',justifyContent:'center' }}>
                   <i className="bi bi-image" style={{ fontSize:'2rem',color:'#aab' }}/>
                 </div>
             }
-            <div className="hip-grid-ov">
-              <span><i className="bi bi-hand-thumbs-up-fill me-1"></i>{p.likes_count}</span>
+            
+            <div className="hip-grid-error-overlay" style={{ display: 'none', width:'100%',height:'100%',background:'#cdd8e5',alignItems:'center',justifyContent:'center' }}>
+                <i className="bi bi-image" style={{ fontSize:'2rem',color:'#aab' }}/>
             </div>
+
+            {/* 4. BOTÓN DE ELIMINAR AGREGADO AQUÍ */}
+            <div className="hip-grid-ov d-flex justify-content-between align-items-center w-100 px-2">
+              <span><i className="bi bi-hand-thumbs-up-fill me-1"></i>{p.likes_count}</span>
+              
+              <button 
+                className="btn btn-sm btn-danger rounded-circle" 
+                style={{ width: '32px', height: '32px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={(e) => handleDeletePost(p.id, e)}
+                title="Eliminar publicación"
+              >
+                <i className="bi bi-trash-fill"></i>
+              </button>
+            </div>
+            
           </div>
         ))}
       </div>
+      
+      <style>{`
+        .img-error .hip-grid-error-overlay { display: flex !important; }
+      `}</style>
     </div>
   );
 }

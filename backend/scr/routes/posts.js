@@ -64,7 +64,7 @@ router.get('/feed', requireAuth, async (req, res) => {
   }
 });
 
-// ── GET /posts/explore (CORREGIDO) ──
+// ── GET /posts/explore ──
 router.get('/explore', requireAuth, async (req, res) => {
   const page  = parseInt(req.query.page  || '1');
   const limit = parseInt(req.query.limit || '10');
@@ -97,7 +97,7 @@ router.get('/explore', requireAuth, async (req, res) => {
   }
 });
 
-// ── GET /search/hashtag  ← DEBE ir ANTES de /:id ──
+// ── GET /search/hashtag ──
 router.get('/search/hashtag', requireAuth, async (req, res) => {
   const q    = (req.query.q || '').toLowerCase().trim();
   const page = parseInt(req.query.page || '1');
@@ -124,7 +124,7 @@ router.get('/search/hashtag', requireAuth, async (req, res) => {
   }
 });
 
-// ── GET /search  ← DEBE ir ANTES de /:id ──
+// ── GET /search ──
 router.get('/search', requireAuth, async (req, res) => {
   const q      = (req.query.q || '').trim();
   const page   = parseInt(req.query.page || '1');
@@ -154,7 +154,7 @@ router.get('/search', requireAuth, async (req, res) => {
   }
 });
 
-// ── GET /comments/:postId  ← DEBE ir ANTES de /:id ──
+// ── GET /comments/:postId ──
 router.get('/comments/:postId', requireAuth, async (req, res) => {
   const postId = parseInt(req.params.postId);
   const page   = parseInt(req.query.page  || '1');
@@ -228,7 +228,6 @@ router.post('/', requireAuth, upload.single('imagen'), async (req, res) => {
     let estadoPost = 'PENDIENTE'; 
     let bannedWords = [];
     
-    // Obtenemos la lista actualizada desde la BD
     try {
         const configRes = await client.query("SELECT detalles FROM configuracion WHERE clave = 'forbidden_words'");
         if (configRes.rows[0] && configRes.rows[0].detalles.banned) {
@@ -238,13 +237,11 @@ router.post('/', requireAuth, upload.single('imagen'), async (req, res) => {
         console.error('Error al leer palabras prohibidas:', err);
     }
 
-    // Comparamos el texto del usuario contra la lista negra
     const descLower = descripcion.toLowerCase();
     const contieneProhibidas = bannedWords.some(word => 
         descLower.includes(word) || hashtags.some(h => h.includes(word))
     );
 
-    // Si detectamos contenido indebido, cambiamos su destino
     if (contieneProhibidas) {
         estadoPost = 'BLOQUEADO'; 
     }
@@ -291,7 +288,6 @@ router.post('/', requireAuth, upload.single('imagen'), async (req, res) => {
 
     await client.query('COMMIT');
 
-    // 5. --- RESPUESTA AL FRONTEND ---
     if (contieneProhibidas) {
         return res.status(403).json({ error: 'Tu publicación ha sido retenida por contener lenguaje no permitido.' });
     }
@@ -300,14 +296,11 @@ router.post('/', requireAuth, upload.single('imagen'), async (req, res) => {
 
   } catch (err) {
     await client.query('ROLLBACK');
-    
-    // Limpieza: Si falla la BD, borramos la imagen que multer ya había guardado
     try {
         if (req.file) fs.unlinkSync(req.file.path);
     } catch (e) {
         console.error('Error al limpiar archivo huerfano:', e);
     }
-
     console.error('Error al crear post:', err);
     return res.status(500).json({ error: 'Error al procesar la publicación.' });
   } finally {
@@ -315,30 +308,53 @@ router.post('/', requireAuth, upload.single('imagen'), async (req, res) => {
   }
 });
 
-// ── DELETE /posts/:id ──
+// ── DELETE /posts/:id (MEJORADO CON TRANSACCIONES - ROL DBA) ──
 router.delete('/:id', requireAuth, async (req, res) => {
-  const postId = parseInt(req.params.id);
-  const userId = req.user.sub;
-  const ip     = req.ip;
+    const postId = parseInt(req.params.id);
+    const userId = req.user.sub; 
 
-  try {
-    const pRes = await query('SELECT * FROM publicacion WHERE id=$1', [postId]);
-    if (!pRes.rows[0]) return res.status(404).json({ error: 'Publicación no encontrada.' });
-    if (pRes.rows[0].usuario_id !== userId && req.user.rol !== 'ADMIN') {
-      return res.status(403).json({ error: 'No puedes eliminar una publicación que no es tuya.' });
+    const client = await require('../BD/pool').pool.connect();
+    try {
+        await client.query('BEGIN'); // Transacción iniciada
+
+        // Verificar propiedad
+        const pRes = await client.query('SELECT usuario_id FROM publicacion WHERE id=$1', [postId]);
+        
+        if (!pRes.rows[0]) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Publicación no encontrada.' });
+        }
+        if (pRes.rows[0].usuario_id !== userId && req.user.rol !== 'ADMIN') {
+            await client.query('ROLLBACK');
+            return res.status(403).json({ error: 'No puedes eliminar una publicación que no es tuya.' });
+        }
+
+        // Intento de borrado
+        await client.query('DELETE FROM publicacion WHERE id=$1', [postId]);
+        
+        // Auditoría
+        await client.query(
+            `INSERT INTO auditoria (usuario_id, accion, tabla_afectada, detalles, direccion_ip) 
+             VALUES ($1, 'POST_ELIMINADO', 'publicacion', $2, $3)`,
+            [userId, JSON.stringify({ post_id: postId }), req.ip]
+        );
+
+        await client.query('COMMIT'); // Se completó con éxito
+        return res.json({ message: 'Publicación eliminada.' });
+        
+    } catch (err) {
+        await client.query('ROLLBACK'); // Algo falló, deshacemos
+        
+        // Captura explícita de error de clave foránea en Postgres
+        if (err.code === '23503') {
+            return res.status(409).json({ error: 'No se puede eliminar porque existen registros dependientes (comentarios o likes).' });
+        }
+        
+        console.error(err);
+        return res.status(500).json({ error: 'Error al eliminar.' });
+    } finally {
+        client.release();
     }
-
-    await query('DELETE FROM publicacion WHERE id=$1', [postId]);
-    await audit(userId, 'POST_ELIMINADO', 'publicacion', { post_id: postId }, ip);
-
-    return res.json({ message: 'Publicación eliminada.' });
-  } catch (err) {
-    if (err.code === '23503') {
-      return res.status(409).json({ error: 'No se puede eliminar porque tiene comentarios.' });
-    }
-    console.error(err);
-    return res.status(500).json({ error: 'Error al eliminar.' });
-  }
 });
 
 // ── POST /votes/:postId ──
@@ -355,18 +371,16 @@ router.post('/votes/:postId', requireAuth, async (req, res) => {
   const client = await require('../BD/pool').pool.connect();
   try {
     await client.query('BEGIN');
-const pRes = await client.query(
+    const pRes = await client.query(
       "SELECT usuario_id FROM publicacion WHERE id=$1 AND estado='PUBLICADO'", 
       [postId]
     );
     
-    // 2. Si no existe o no está publicado, bloqueamos
     if (!pRes.rows[0]) { 
       await client.query('ROLLBACK'); 
       return res.status(404).json({ error: 'Publicación no encontrada o en revisión.' }); 
     }
     
-    // 3. Si intentas votar tu propio post, bloqueamos
     if (pRes.rows[0].usuario_id === userId) { 
       await client.query('ROLLBACK'); 
       return res.status(400).json({ error: 'No puedes votar tu propia publicación.' }); 
