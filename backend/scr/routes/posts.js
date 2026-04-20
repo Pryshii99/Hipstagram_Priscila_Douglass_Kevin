@@ -308,6 +308,63 @@ router.post('/', requireAuth, upload.single('imagen'), async (req, res) => {
   }
 });
 
+// =========================================================================
+// 🚀 ¡AQUÍ ESTÁ LA CORRECCIÓN! LA RUTA ESPECÍFICA DEBE IR ANTES
+// =========================================================================
+// ── DELETE /comments/:id (Eliminar comentario - Rol DBA) ──
+router.delete('/comments/:id', requireAuth, async (req, res) => {
+  const commentId = parseInt(req.params.id);
+  const userId = req.user.sub;
+  const ip = req.ip;
+
+  const client = await require('../BD/pool').pool.connect();
+  try {
+    await client.query('BEGIN'); // Iniciamos transacción
+
+    // 1. Verificamos que el comentario exista y le pertenezca al usuario
+    const cRes = await client.query(
+      'SELECT usuario_id, publicacion_id FROM comentarios WHERE id=$1', 
+      [commentId]
+    );
+
+    if (!cRes.rows[0]) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Comentario no encontrado.' });
+    }
+
+    if (cRes.rows[0].usuario_id !== userId && req.user.rol !== 'ADMIN') {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'No tienes permiso para eliminar este comentario.' });
+    }
+
+    const postId = cRes.rows[0].publicacion_id;
+
+    // 2. Eliminamos físicamente el comentario [cite: 250]
+    await client.query('DELETE FROM comentarios WHERE id=$1', [commentId]);
+
+    // 3. Dejamos rastro en la Auditoría 
+    await client.query(
+      `INSERT INTO auditoria (usuario_id, accion, tabla_afectada, detalles, direccion_ip)
+       VALUES ($1, 'COMENTARIO_ELIMINADO', 'comentarios', $2, $3)`,
+      [userId, JSON.stringify({ comment_id: commentId, post_id: postId }), ip]
+    );
+
+    await client.query('COMMIT');
+    return res.json({ message: 'Comentario eliminado exitosamente.' });
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error al eliminar comentario:', err);
+    return res.status(500).json({ error: 'Error interno al intentar eliminar el comentario.' });
+  } finally {
+    client.release();
+  }
+});
+
+
+// =========================================================================
+// 🛑 LUEGO VIENE LA RUTA COMODÍN GENERAL
+// =========================================================================
 // ── DELETE /posts/:id (MEJORADO CON TRANSACCIONES - ROL DBA) ──
 router.delete('/:id', requireAuth, async (req, res) => {
     const postId = parseInt(req.params.id);
@@ -356,6 +413,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
         client.release();
     }
 });
+
 
 // ── POST /votes/:postId ──
 router.post('/votes/:postId', requireAuth, async (req, res) => {

@@ -79,15 +79,26 @@ export default function ExplorePage() {
             </div>
 
             {/* 3. Acciones y Contenido */}
-            <div className="p-3">
-              <div className="d-flex gap-4 mb-3 fs-4">
-                <i className="bi bi-hand-thumbs-up text-white custom-action-icon"></i>
-                <i className="bi bi-hand-thumbs-down text-white custom-action-icon"></i>
-                <i className="bi bi-chat text-white custom-action-icon"></i>
-              </div>
-              
-              <div className="fw-bold mb-1 small text-secondary">
-                {p.likes_count} Likes • {p.dislikes_count} Dislikes
+            <div className="p-3 pb-2">
+              {/* 🚀 NUEVO DISEÑO TIPO INSTAGRAM PARA LAS INTERACCIONES EN EL FEED 🚀 */}
+              <div className="d-flex align-items-center gap-4 mb-2">
+                {/* Botón Like */}
+                <div className="btn-ig-action">
+                  <i className="bi bi-hand-thumbs-up"></i>
+                  <span className="fs-6 fw-bold">{p.likes_count}</span>
+                </div>
+                
+                {/* Botón Dislike */}
+                <div className="btn-ig-action">
+                  <i className="bi bi-hand-thumbs-down"></i>
+                  <span className="fs-6 fw-bold">{p.dislikes_count}</span>
+                </div>
+
+                {/* Icono de Comentarios */}
+                <div className="btn-ig-action">
+                  <i className="bi bi-chat"></i>
+                  <span className="fs-6 fw-bold">{p.total_comentarios || 0}</span>
+                </div>
               </div>
               
               <div className="insta-caption mt-2">
@@ -138,7 +149,6 @@ export default function ExplorePage() {
           justify-content: center;
           font-weight: 800; /* Letra en negrita (bold) */
           font-size: 1.2rem;
-          /* Eliminamos cualquier padding o borde que tuviera el 'ring' anterior */
           padding: 0;
           border: none; 
         }
@@ -148,6 +158,7 @@ export default function ExplorePage() {
           border: 1px solid #333 !important; /* Borde sutil por defecto */
           background-color: #000; /* Aseguramos fondo negro para contraste */
           transition: all 0.3s ease;
+          cursor: pointer;
         }
         
         .custom-hover-card:hover {
@@ -155,14 +166,31 @@ export default function ExplorePage() {
           box-shadow: 0 0 12px rgba(255, 193, 7, 0.2); /* Resplandor amarillo */
         }
 
-        /* Efecto amarillo en los iconos de acción al pasar el cursor */
-        .custom-action-icon {
-          transition: color 0.2s ease;
-          cursor: pointer;
+        /* --- ESTILOS PARA INTERACCIONES TIPO INSTAGRAM --- */
+        .btn-ig-action {
+          background: transparent;
+          border: none;
+          color: #f8f9fa; /* Blanco/gris apagado */
+          display: flex;
+          align-items: center;
+          gap: 6px; /* Espaciado entre icono y número */
+          padding: 0;
+          transition: color 0.2s ease-in-out;
         }
         
-        .custom-action-icon:hover {
-          color: #ffc107 !important;
+        .btn-ig-action i {
+          font-size: 1.5rem; /* Tamaño de los iconos */
+          transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Efecto Hover (Amarillo) */
+        .btn-ig-action:hover {
+          color: #ffc107;
+        }
+        
+        /* Salto del icono al pasar el mouse */
+        .btn-ig-action:hover i {
+          transform: scale(1.15);
         }
 
         /* Efecto al pasar el cursor sobre los hashtags */

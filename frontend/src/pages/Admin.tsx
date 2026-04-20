@@ -23,7 +23,6 @@ export default function AdminPage() {
   const [userQ,   setUserQ]   = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 🚀 Mejoramos el useEffect para que responda a cambios de pestaña
   useEffect(() => {
     if (tab==='posts') loadPosts();
     if (tab==='users') loadUsers();
@@ -35,7 +34,6 @@ export default function AdminPage() {
     setLoading(true);
     try { 
       const response = await adminAPI.getPosts(filter); 
-      // Soporte para data.posts o data (si el wrapper ya devuelve el body)
       const data = response.data || response;
       setPosts(data.posts ?? []); 
     }
@@ -48,7 +46,6 @@ export default function AdminPage() {
     try { 
       const response = await adminAPI.getUsers(userQ); 
       const data = response.data || response;
-      // Buscamos tanto en 'users' como en 'usuarios' (como pusimos en admin.js)
       setUsers(data.users || data.usuarios || []); 
     }
     catch (err) { console.error(err); showToast('Error al cargar usuarios.','error');}
@@ -60,7 +57,6 @@ export default function AdminPage() {
     try { 
       const response = await adminAPI.getAudit(); 
       const data = response.data || response;
-      // Buscamos en todas las llaves posibles que configuramos en el backend
       setAudit(data.audit_logs || data.registros || data.auditoria || []); 
     }
     catch (err) { console.error(err); showToast('Error al cargar auditoría.','error');}
@@ -85,11 +81,18 @@ export default function AdminPage() {
     catch { showToast('Error al moderar.','error'); }
   }
 
-  async function toggleUser(id: number, activo: boolean) {
+  // 🚀 LÓGICA DE CONFIRMACIÓN AÑADIDA
+  async function handleSetUserStatus(id: number, activate: boolean) {
+    // Si la acción es desactivar (activate === false), pedimos confirmación
+    if (!activate) {
+      const confirmacion = window.confirm("¿Está seguro de desactivar a este usuario?");
+      if (!confirmacion) return; // Si dice Cancelar, salimos de la función
+    }
+
     try { 
-      await adminAPI.setUserStatus(id, !activo); 
-      showToast(`Usuario ${activo?'desactivado':'activado'} ✓`); 
-      loadUsers(); 
+      await adminAPI.setUserStatus(id, activate); 
+      showToast(`Usuario ${activate ? 'activado' : 'desactivado'} ✓`); 
+      loadUsers(); // Recargamos para ver el cambio de estado
     }
     catch { showToast('Error al cambiar estado del usuario.','error'); }
   }
@@ -106,13 +109,11 @@ export default function AdminPage() {
   function timeStr(d?: string) { return d ? new Date(d).toLocaleString() : '—'; }
 
   return (
-    <div className="container py-4" style={{ maxWidth:900 }}>
-      {/* Título en color amarillo */}
+    <div className="container py-4" style={{ maxWidth:1000 }}>
       <h4 className="fw-bold mb-4" style={{ color:'#ffc107' }}>
         <i className="bi bi-shield-lock-fill me-2"></i>Panel de Administración
       </h4>
 
-      {/* Navegación principal con clase personalizada 'admin-tabs' */}
       <ul className="nav nav-pills mb-4 gap-2 admin-tabs">
         {TABS.map(t => (
           <li key={t.id} className="nav-item">
@@ -186,33 +187,60 @@ export default function AdminPage() {
             <input type="text" className="form-control bg-dark border-secondary text-white" placeholder="Buscar usuario o correo..."
               value={userQ} onChange={e => setUserQ(e.target.value)}
               onKeyDown={e => e.key==='Enter' && loadUsers()} />
-            {/* Botón de búsqueda en amarillo */}
             <button className="btn btn-warning fw-bold" onClick={loadUsers}>Buscar</button>
           </div>
           {loading && <div className="hip-spin"><div className="spinner-border text-warning"/></div>}
           <div className="table-responsive">
-            {/* Tabla adaptada a tema oscuro */}
             <table className="table table-dark table-hover align-middle">
               <thead>
-                <tr><th className="text-warning">Usuario</th><th className="text-warning">Correo</th><th className="text-warning">Rol</th><th className="text-warning">Estado</th><th className="text-warning">Acción</th></tr>
+                <tr>
+                  <th className="text-warning">Usuario</th>
+                  <th className="text-warning">Correo</th>
+                  <th className="text-warning">Rol</th>
+                  <th className="text-warning">Estado</th>
+                  <th className="text-warning text-center">Acciones</th>
+                </tr>
               </thead>
               <tbody>
-                {users.map(u => (
-                  <tr key={u.id}>
-                    <td><span className="fw-semibold">@{u.nombre_usuario}</span></td>
-                    <td><small className="text-light">{u.correo}</small></td>
-                    <td><span className={`badge ${u.rol==='ADMIN'?'bg-danger':'bg-warning text-dark'}`}>{u.rol}</span></td>
-                    <td>{u.activo ? <span className="text-success"><i className="bi bi-check-circle me-1"></i>Activo</span>
-                                  : <span className="text-danger"><i className="bi bi-x-circle me-1"></i>Inactivo</span>}</td>
-                    <td>
-                      <button className={`btn btn-sm rounded-pill ${u.activo?'btn-outline-danger':'btn-outline-success'}`}
-                        onClick={() => toggleUser(u.id, u.activo ?? true)}>
-                        <i className={`bi ${u.activo?'bi-person-dash':'bi-person-check'} me-1`}></i>
-                        {u.activo?'Desactivar':'Activar'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {users.map(u => {
+                  const isActive = (u as any).estado === 'Activo';
+
+                  return (
+                    <tr key={u.id}>
+                      <td><span className="fw-semibold">@{u.nombre_usuario}</span></td>
+                      <td><small className="text-light">{u.correo}</small></td>
+                      <td><span className={`badge ${u.rol==='ADMIN'?'bg-danger':'bg-warning text-dark'}`}>{u.rol}</span></td>
+                      
+                      <td>
+                        {isActive ? (
+                          <span className="text-success"><i className="bi bi-check-circle me-1"></i>Activo</span>
+                        ) : (
+                          <span className="text-danger"><i className="bi bi-x-circle me-1"></i>Inactivo</span>
+                        )}
+                      </td>
+
+                      <td>
+                        <div className="d-flex gap-2 justify-content-center">
+                          <button 
+                            className={`btn btn-sm rounded-pill ${!isActive ? 'btn-success' : 'btn-outline-success'}`}
+                            onClick={() => handleSetUserStatus(u.id, true)}
+                            disabled={isActive}
+                          >
+                            <i className="bi bi-person-check me-1"></i>Activar
+                          </button>
+                          
+                          <button 
+                            className={`btn btn-sm rounded-pill ${isActive ? 'btn-danger' : 'btn-outline-danger'}`}
+                            onClick={() => handleSetUserStatus(u.id, false)}
+                            disabled={!isActive}
+                          >
+                            <i className="bi bi-person-dash me-1"></i>Desactivar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {!loading && users.length===0 && (
                   <tr><td colSpan={5} className="text-center text-muted py-4">No se encontraron usuarios</td></tr>
                 )}
@@ -232,7 +260,6 @@ export default function AdminPage() {
             style={{ fontFamily:'monospace',fontSize:'0.88rem',borderRadius:12 }}
             value={banned} onChange={e => setBanned(e.target.value)}
             placeholder={'{ "banned": ["spam","nsfw","odio"] }'}/>
-          {/* Botón guardar en amarillo */}
           <button className="btn btn-warning rounded-pill px-4 fw-bold" onClick={saveBanned}>
             <i className="bi bi-save me-2"></i>Guardar lista
           </button>
@@ -267,22 +294,19 @@ export default function AdminPage() {
 
       {/* ESTILOS PERSONALIZADOS TEMA OSCURO/AMARILLO */}
       <style>{`
-        /* Pestañas Principales (Nav-pills) */
         .admin-tabs .nav-link {
-          color: #ffc107; /* Texto amarillo por defecto */
+          color: #ffc107; 
           background-color: transparent;
           transition: all 0.2s ease-in-out;
         }
         .admin-tabs .nav-link:hover {
-          background-color: rgba(255, 193, 7, 0.1); /* Fondo ligero amarillo al hover */
+          background-color: rgba(255, 193, 7, 0.1); 
         }
         .admin-tabs .nav-link.active {
-          background-color: #ffc107 !important; /* Fondo amarillo activo */
-          color: #000 !important; /* Texto negro para contraste */
+          background-color: #ffc107 !important; 
+          color: #000 !important; 
           font-weight: 700;
         }
-
-        /* Botones de Filtro (Pendiente, Bloqueado, Publicado) */
         .custom-filter-btn {
           color: #ffc107;
           border: 1px solid #ffc107;
@@ -298,8 +322,6 @@ export default function AdminPage() {
           font-weight: 700;
           border-color: #ffc107;
         }
-
-        /* Ajustes menores para inputs y placeholders en modo oscuro */
         .form-control::placeholder {
           color: #6c757d;
         }

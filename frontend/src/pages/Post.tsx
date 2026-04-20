@@ -62,8 +62,25 @@ export default function PostPage() {
       setComments(p => [data.comentario ?? data, ...p]);
       setNewCmt('');
       showToast('Comentario enviado ✓');
+      // Actualizamos el contador visual de comentarios
+      setPost(prev => prev ? { ...prev, total_comentarios: Number(prev.total_comentarios) + 1 } : prev);
     } catch { showToast('Error al comentar.','error'); }
     finally { setSending(false); }
+  }
+
+  // 🚀 NUEVA FUNCIÓN PARA ELIMINAR EL COMENTARIO 🚀
+  async function handleDeleteComment(commentId: number) {
+    if (!window.confirm('¿Seguro que deseas eliminar tu comentario?')) return;
+    try {
+      await commentsAPI.remove(commentId);
+      showToast('Comentario eliminado.');
+      // Filtramos la lista para quitar el comentario borrado de la pantalla
+      setComments(prev => prev.filter(c => c.id !== commentId));
+      // Restamos uno al contador visual
+      setPost(prev => prev ? { ...prev, total_comentarios: Math.max(0, Number(prev.total_comentarios) - 1) } : prev);
+    } catch (error) {
+      showToast('Error al intentar eliminar el comentario.', 'error');
+    }
   }
 
   if (loading) return <div className="hip-spin"><div className="spinner-border text-primary"/></div>;
@@ -94,26 +111,38 @@ export default function PostPage() {
     />
   : <div className="hip-card-img-ph"><i className="bi bi-image"/></div>
 }
-        <div className="hip-card-body">
+        <div className="hip-card-body pb-2">
           {post.hashtags?.map(h => (
             <span key={h} className="hip-tag" onClick={() => navigate(`/search?q=${h}&mode=hashtag`)}>{h}</span>
           ))}
-          {post.descripcion && <p className="hip-desc mt-1"><span className="fw-semibold">@{post.nombre_usuario}</span> {post.descripcion}</p>}
-          <div style={{ fontSize:'0.8rem',color:'#aaa',marginTop:3 }}>{likes} me gusta · {dislikes} no me gusta</div>
+          {post.descripcion && <p className="hip-desc mt-1 mb-0"><span className="fw-semibold">@{post.nombre_usuario}</span> {post.descripcion}</p>}
         </div>
-        <div className="hip-actions">
-          <button className={`btn-like ${myVote===1?'on':''}`} onClick={() => handleVote(1)}>
-            <i className={`bi ${myVote===1?'bi-hand-thumbs-up-fill':'bi-hand-thumbs-up'}`}></i><span>{likes}</span>
+
+        {/* 🚀 NUEVO DISEÑO TIPO INSTAGRAM PARA LAS INTERACCIONES 🚀 */}
+        <div className="d-flex align-items-center gap-4 px-3 pb-3 mt-2">
+          {/* Botón Like */}
+          <button className={`btn-ig-action ${myVote===1?'on':''}`} onClick={() => handleVote(1)}>
+            <i className={`bi ${myVote===1?'bi-hand-thumbs-up-fill':'bi-hand-thumbs-up'}`}></i>
+            <span className="fs-6 fw-bold">{likes}</span>
           </button>
-          <button className={`btn-dislike ${myVote===0?'on':''}`} onClick={() => handleVote(0)}>
-            <i className={`bi ${myVote===0?'bi-hand-thumbs-down-fill':'bi-hand-thumbs-down'}`}></i><span>{dislikes}</span>
+          
+          {/* Botón Dislike */}
+          <button className={`btn-ig-action ${myVote===0?'on':''}`} onClick={() => handleVote(0)}>
+            <i className={`bi ${myVote===0?'bi-hand-thumbs-down-fill':'bi-hand-thumbs-down'}`}></i>
+            <span className="fs-6 fw-bold">{dislikes}</span>
           </button>
+
+          {/* Icono de Comentarios */}
+          <div className="btn-ig-action" style={{ cursor: 'default' }}>
+            <i className="bi bi-chat"></i>
+            <span className="fs-6 fw-bold">{post.total_comentarios || comments.length}</span>
+          </div>
         </div>
 
         {/* Comentarios */}
         <div style={{ padding:'0 15px 16px' }}>
           <h6 className="fw-bold mb-3">
-            <i className="bi bi-chat-dots me-2"></i>Comentarios ({post.total_comentarios || comments.length})
+            <i className="bi bi-chat-dots me-2"></i>Comentarios
           </h6>
           <form onSubmit={sendComment} className="d-flex gap-2 mb-3">
             <div className="hip-avatar sm" style={{ flexShrink:0 }}>
@@ -135,17 +164,72 @@ export default function PostPage() {
             </p>
           )}
           {comments.map(c => (
-            <div key={c.id} className="hip-cmt">
-              <div className="hip-avatar sm" style={{ flexShrink:0 }}>{c.nombre_usuario?.[0]?.toUpperCase()}</div>
-              <div>
-                <span className="hip-cmt-user me-2">@{c.nombre_usuario}</span>
-                <span className="hip-cmt-time">{timeAgo(c.fecha_creacion)}</span>
-                <p className="hip-cmt-text mb-0">{c.contenido}</p>
+            // 🚀 RENDEREADO DE CADA COMENTARIO CON BOTÓN DE ELIMINAR 🚀
+            <div key={c.id} className="hip-cmt d-flex justify-content-between align-items-center mb-2">
+              <div className="d-flex gap-2">
+                <div className="hip-avatar sm" style={{ flexShrink:0 }}>{c.nombre_usuario?.[0]?.toUpperCase()}</div>
+                <div>
+                  <span className="hip-cmt-user me-2">@{c.nombre_usuario}</span>
+                  <span className="hip-cmt-time">{timeAgo(c.fecha_creacion)}</span>
+                  <p className="hip-cmt-text mb-0">{c.contenido}</p>
+                </div>
               </div>
+
+              {/* Mostrar botón solo si el usuario actual es el dueño del comentario */}
+              {user?.nombre_usuario === c.nombre_usuario && (
+                <button 
+                  className="btn btn-sm text-danger border-0 px-2 btn-delete-cmt" 
+                  onClick={() => handleDeleteComment(c.id)}
+                  title="Eliminar comentario"
+                >
+                  <i className="bi bi-trash"></i>
+                </button>
+              )}
             </div>
-          ))}
+         ))}
         </div>
       </div>
+      
+      {/* 🚀 SECCIÓN DE ESTILOS CSS 🚀 */}
+      <style>{`
+        /* --- ESTILOS PARA INTERACCIONES TIPO INSTAGRAM --- */
+        .btn-ig-action {
+          background: transparent;
+          border: none;
+          color: #f8f9fa; /* Blanco/gris apagado */
+          display: flex;
+          align-items: center;
+          gap: 6px; /* Espaciado entre icono y número */
+          padding: 0;
+          transition: color 0.2s ease-in-out;
+        }
+        
+        .btn-ig-action i {
+          font-size: 1.5rem; /* Tamaño de los iconos */
+          transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* Efecto Hover y Activo (Amarillo) */
+        .btn-ig-action:hover, .btn-ig-action.on {
+          color: #ffc107;
+        }
+        
+        /* Salto del icono al pasar el mouse */
+        .btn-ig-action:hover i {
+          transform: scale(1.15);
+        }
+
+        /* --- ESTILOS PARA EL BOTÓN DE ELIMINAR COMENTARIO --- */
+        .btn-delete-cmt i {
+          display: inline-block; 
+          transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+        }
+        
+        .btn-delete-cmt:hover i {
+          transform: scale(1.4); 
+        }
+      `}</style>
+      
     </div>
   );
 }

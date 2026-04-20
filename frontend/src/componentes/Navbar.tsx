@@ -67,9 +67,9 @@ export default function Navbar() {
               <div className="user-info" style={{ fontWeight:700, fontSize:'0.9rem' }}>@{user?.nombre_usuario}</div>
               <div className="user-role" style={{ fontSize:'0.76rem' }}>{user?.rol}</div>
             </div>
+            {/* 🚀 ARREGLO MODIFICADO: Solo "Mi perfil" 🚀 */}
             {[
               { icon:'bi-person-circle',  label:'Mi perfil',    action: () => navigate('/profile') },
-              { icon:'bi-cloud-upload',   label:'Nueva foto',   action: () => navigate('/new') },
             ].map(i => (
               <button key={i.label} className="dropdown-item custom-item d-flex align-items-center gap-2 py-2 px-3"
                 onClick={i.action}>

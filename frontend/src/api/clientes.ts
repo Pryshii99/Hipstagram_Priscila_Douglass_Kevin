@@ -58,9 +58,11 @@ export const votesAPI = {
 };
 
 // ── Comentarios ───
+// ── Comentarios ───
 export const commentsAPI = {
   list:   (postId: number, page = 1) => api.get(`/posts/comments/${postId}?page=${page}&limit=20`),
   create: (postId: number, text: string) => api.post(`/posts/comments/${postId}`, { contenido: text }),
+  remove: (commentId: number) => api.delete(`/posts/comments/${commentId}`), // <- NUEVA LÍNEA
 };
 
 // ── Búsqueda ───
@@ -85,5 +87,7 @@ export const adminAPI = {
   setBanned:     (d: object)                  => api.put('/admin/banned-words', d),
   getAudit:      (params?: object)            => api.get('/admin/audit', { params }),
 };
+
+
 
 export default api;
