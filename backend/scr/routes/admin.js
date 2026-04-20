@@ -148,15 +148,19 @@ const bloquearPost = async (req, res) => {
     }
 };
 
-// Asignación de rutas de moderación
+
+// Asignación de rutas de moderación (Soportando POST, PUT y PATCH para compatibilidad Frontend)
 router.post('/posts/:id/approve', requireAuth, requireRole('ADMIN'), aprobarPost);
 router.put('/posts/:id/approve', requireAuth, requireRole('ADMIN'), aprobarPost);
+router.patch('/posts/:id/approve', requireAuth, requireRole('ADMIN'), aprobarPost); // <- NUEVO
 
 router.post('/posts/:id/reject', requireAuth, requireRole('ADMIN'), rechazarPost);
 router.put('/posts/:id/reject', requireAuth, requireRole('ADMIN'), rechazarPost);
+router.patch('/posts/:id/reject', requireAuth, requireRole('ADMIN'), rechazarPost); // <- NUEVO
 
 router.post('/posts/:id/block', requireAuth, requireRole('ADMIN'), bloquearPost);
 router.put('/posts/:id/block', requireAuth, requireRole('ADMIN'), bloquearPost);
+router.patch('/posts/:id/block', requireAuth, requireRole('ADMIN'), bloquearPost); // <- NUEVO
 
 
 // ============================================================================
