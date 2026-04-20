@@ -63,17 +63,20 @@ export default function ProfilePage() {
   return (
     <div className="hip-feed">
       <div className="hip-card p-4 mb-3">
-        <div className="d-flex align-items-center gap-3 mb-3">
-          <div className="hip-avatar lg">{ini}</div>
+        {/* MODIFICACIÓN AQUÍ: Cambio a flex-column, align-items-center y text-center */}
+        <div className="d-flex flex-column align-items-center text-center mb-4">
+          <div className="hip-avatar lg mb-2">{ini}</div>
           <div>
             <h5 className="mb-0 fw-bold">@{profile?.nombre_usuario}</h5>
             <small className="text-muted">{profile?.correo}</small><br/>
-            <span className={`badge mt-1 ${profile?.rol==='ADMIN'?'bg-danger':'bg-primary'}`}>
+            <span className={`badge mt-2 ${profile?.rol==='ADMIN'?'bg-danger':'bg-primary'}`}>
               <i className={`bi ${profile?.rol==='ADMIN'?'bi-shield-fill':'bi-person-fill'} me-1`}></i>
               {profile?.rol}
             </span>
           </div>
         </div>
+        {/* FIN DE LA MODIFICACIÓN */}
+
         <div className="row g-2 text-center mb-3">
           {[
             ['bi-images',         posts.length, 'Publicaciones'],

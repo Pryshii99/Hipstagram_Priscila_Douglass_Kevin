@@ -48,25 +48,23 @@ export default function ExplorePage() {
       </div>
 
       {loading && posts.length === 0 && (
-        <div className="hip-spin"><div className="spinner-border text-primary" /></div>
+        <div className="hip-spin"><div className="spinner-border text-warning" /></div>
       )}
 
       <div className="v-feed-stack">
         {posts.map((p) => (
           <article 
             key={p.id} 
-            className="insta-card mb-5" 
+            className="insta-card mb-5 custom-hover-card" 
             onClick={() => navigate(`/post/${p.id}`)}
           >
             {/* 1. Header del Post */}
             <div className="p-3 d-flex align-items-center">
-              <div className="insta-avatar-ring me-3">
-                <div className="insta-avatar-bg">
+              <div className="custom-avatar me-3">
                   {p.nombre_usuario?.[0]?.toUpperCase()}
-                </div>
               </div>
               <div>
-                <div className="fw-bold fs-6">@{p.nombre_usuario}</div>
+                <div className="fw-bold fs-6" style={{ color: '#ffc107' }}>@{p.nombre_usuario}</div>
                 <div className="text-secondary small">{timeAgo(p.fecha_creacion)}</div>
               </div>
             </div>
@@ -83,9 +81,9 @@ export default function ExplorePage() {
             {/* 3. Acciones y Contenido */}
             <div className="p-3">
               <div className="d-flex gap-4 mb-3 fs-4">
-                <i className="bi bi-hand-thumbs-up text-white"></i>
-                <i className="bi bi-hand-thumbs-down text-white"></i>
-                <i className="bi bi-chat text-white"></i>
+                <i className="bi bi-hand-thumbs-up text-white custom-action-icon"></i>
+                <i className="bi bi-hand-thumbs-down text-white custom-action-icon"></i>
+                <i className="bi bi-chat text-white custom-action-icon"></i>
               </div>
               
               <div className="fw-bold mb-1 small text-secondary">
@@ -93,16 +91,16 @@ export default function ExplorePage() {
               </div>
               
               <div className="insta-caption mt-2">
-                <span className="fw-bold me-2">@{p.nombre_usuario}</span>
-                {p.descripcion}
+                <span className="fw-bold me-2" style={{ color: '#ffc107' }}>@{p.nombre_usuario}</span>
+                <span className="text-light">{p.descripcion}</span>
               </div>
 
-              {/* Hashtags Interactivos (Solo un bloque, corregido) */}
+              {/* Hashtags Interactivos */}
               <div className="mt-2">
                 {p.hashtags && p.hashtags.length > 0 && p.hashtags.map((h: string) => (
                   <span 
                     key={h} 
-                    className="text-warning me-2 small fw-bold" 
+                    className="text-warning me-2 small fw-bold custom-hashtag" 
                     style={{ cursor: 'pointer' }}
                     onClick={(e) => {
                       e.stopPropagation(); // Evita que al hacer clic en el hashtag se abra el post
@@ -125,6 +123,54 @@ export default function ExplorePage() {
           </button>
         </div>
       )}
+
+      {/* BLOQUE DE ESTILOS PARA LA TARJETA Y EL AVATAR AMARILLO */}
+      <style>{`
+        /* --- ESTILOS DEL AVATAR --- */
+        .custom-avatar {
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          background-color: #ffc107; /* Fondo amarillo */
+          color: #000; /* Letra negra */
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 800; /* Letra en negrita (bold) */
+          font-size: 1.2rem;
+          /* Eliminamos cualquier padding o borde que tuviera el 'ring' anterior */
+          padding: 0;
+          border: none; 
+        }
+
+        /* --- ESTILOS DE LA TARJETA (HOVER Y BORDES) --- */
+        .custom-hover-card {
+          border: 1px solid #333 !important; /* Borde sutil por defecto */
+          background-color: #000; /* Aseguramos fondo negro para contraste */
+          transition: all 0.3s ease;
+        }
+        
+        .custom-hover-card:hover {
+          border-color: #ffc107 !important; /* Borde amarillo al pasar el cursor */
+          box-shadow: 0 0 12px rgba(255, 193, 7, 0.2); /* Resplandor amarillo */
+        }
+
+        /* Efecto amarillo en los iconos de acción al pasar el cursor */
+        .custom-action-icon {
+          transition: color 0.2s ease;
+          cursor: pointer;
+        }
+        
+        .custom-action-icon:hover {
+          color: #ffc107 !important;
+        }
+
+        /* Efecto al pasar el cursor sobre los hashtags */
+        .custom-hashtag:hover {
+          text-decoration: underline;
+          color: #fff !important;
+        }
+      `}</style>
     </div>
   );
 }
