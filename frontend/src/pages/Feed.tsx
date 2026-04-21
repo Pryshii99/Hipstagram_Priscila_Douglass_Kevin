@@ -13,7 +13,7 @@ function timeAgo(d: string) {
   return `${Math.floor(s / 86400)}d`;
 }
 
-export default function ExplorePage() {
+export default function FeedPage() { // Asumí el nombre FeedPage
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [posts, setPosts] = useState<Publicacion[]>([]);
@@ -24,10 +24,10 @@ export default function ExplorePage() {
   async function load(p: number) {
     setLoading(true);
     try {
-      const { data } = await postsAPI.getExplore(p);
+      const { data } = await postsAPI.getExplore(p); // ⚠️ Ojo, si es tu feed, deberías usar tu endpoint de feed, ej: postsAPI.getFeed(p)
       const arr: Publicacion[] = data.posts ?? data ?? [];
       p === 1 ? setPosts(arr) : setPosts(prev => [...prev, ...arr]);
-      setHasMore(arr.length === 10);
+      setHasMore(arr.length === 10); // Asumiendo que 10 es el límite por página
       setPage(p);
     } catch {
       showToast('Error al cargar.', 'error');
@@ -80,21 +80,18 @@ export default function ExplorePage() {
 
             {/* 3. Acciones y Contenido */}
             <div className="p-3 pb-2">
-              {/* 🚀 NUEVO DISEÑO TIPO INSTAGRAM PARA LAS INTERACCIONES EN EL FEED 🚀 */}
+              {/* 🚀 DISEÑO TIPO INSTAGRAM PARA LAS INTERACCIONES 🚀 */}
               <div className="d-flex align-items-center gap-4 mb-2">
-                {/* Botón Like */}
                 <div className="btn-ig-action">
                   <i className="bi bi-hand-thumbs-up"></i>
                   <span className="fs-6 fw-bold">{p.likes_count}</span>
                 </div>
                 
-                {/* Botón Dislike */}
                 <div className="btn-ig-action">
                   <i className="bi bi-hand-thumbs-down"></i>
                   <span className="fs-6 fw-bold">{p.dislikes_count}</span>
                 </div>
 
-                {/* Icono de Comentarios */}
                 <div className="btn-ig-action">
                   <i className="bi bi-chat"></i>
                   <span className="fs-6 fw-bold">{p.total_comentarios || 0}</span>
@@ -114,7 +111,7 @@ export default function ExplorePage() {
                     className="text-warning me-2 small fw-bold custom-hashtag" 
                     style={{ cursor: 'pointer' }}
                     onClick={(e) => {
-                      e.stopPropagation(); // Evita que al hacer clic en el hashtag se abra el post
+                      e.stopPropagation();
                       navigate(`/search?q=${h.replace('#','')}&mode=hashtag`);
                     }}
                   >
@@ -129,74 +126,82 @@ export default function ExplorePage() {
 
       {hasMore && !loading && (
         <div className="text-center my-5">
-          <button className="btn btn-warning rounded-pill px-5 fw-bold" onClick={() => load(page + 1)}>
+          {/* 🚀 BOTÓN CON LA CLASE GLOW 🚀 */}
+          <button className="btn btn-warning rounded-pill px-5 fw-bold btn-glow-warning" onClick={() => load(page + 1)}>
             Cargar más
           </button>
         </div>
       )}
 
-      {/* BLOQUE DE ESTILOS PARA LA TARJETA Y EL AVATAR AMARILLO */}
+      {/* BLOQUE DE ESTILOS */}
       <style>{`
         /* --- ESTILOS DEL AVATAR --- */
         .custom-avatar {
           width: 42px;
           height: 42px;
           border-radius: 50%;
-          background-color: #ffc107; /* Fondo amarillo */
-          color: #000; /* Letra negra */
+          background-color: #ffc107;
+          color: #000;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-weight: 800; /* Letra en negrita (bold) */
+          font-weight: 800;
           font-size: 1.2rem;
           padding: 0;
           border: none; 
         }
 
-        /* --- ESTILOS DE LA TARJETA (HOVER Y BORDES) --- */
+        /* --- ESTILOS DE LA TARJETA --- */
         .custom-hover-card {
-          border: 1px solid #333 !important; /* Borde sutil por defecto */
-          background-color: #000; /* Aseguramos fondo negro para contraste */
+          border: 1px solid #333 !important;
+          background-color: #000;
           transition: all 0.3s ease;
           cursor: pointer;
         }
         
         .custom-hover-card:hover {
-          border-color: #ffc107 !important; /* Borde amarillo al pasar el cursor */
-          box-shadow: 0 0 12px rgba(255, 193, 7, 0.2); /* Resplandor amarillo */
+          border-color: #ffc107 !important;
+          box-shadow: 0 0 12px rgba(255, 193, 7, 0.2);
         }
 
         /* --- ESTILOS PARA INTERACCIONES TIPO INSTAGRAM --- */
         .btn-ig-action {
           background: transparent;
           border: none;
-          color: #f8f9fa; /* Blanco/gris apagado */
+          color: #f8f9fa;
           display: flex;
           align-items: center;
-          gap: 6px; /* Espaciado entre icono y número */
+          gap: 6px;
           padding: 0;
           transition: color 0.2s ease-in-out;
         }
         
         .btn-ig-action i {
-          font-size: 1.5rem; /* Tamaño de los iconos */
+          font-size: 1.5rem;
           transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        /* Efecto Hover (Amarillo) */
         .btn-ig-action:hover {
           color: #ffc107;
         }
         
-        /* Salto del icono al pasar el mouse */
         .btn-ig-action:hover i {
           transform: scale(1.15);
         }
 
-        /* Efecto al pasar el cursor sobre los hashtags */
         .custom-hashtag:hover {
           text-decoration: underline;
           color: #fff !important;
+        }
+
+        /* 🚀 EFECTO GLOW PARA EL BOTÓN (Faltaba esto) 🚀 */
+        .btn-glow-warning {
+          transition: all 0.3s ease-in-out;
+        }
+        .btn-glow-warning:hover {
+          box-shadow: 0 0 15px rgba(255, 193, 7, 0.7), 0 0 25px rgba(255, 193, 7, 0.4);
+          background-color: #ffca2c;
+          transform: translateY(-1px);
         }
       `}</style>
     </div>

@@ -61,7 +61,8 @@ export default function SearchPage() {
               />
             </div>
             
-            <button type="submit" className="btn btn-warning rounded-pill px-4 fw-bold" disabled={loading}>
+            {/* 🚀 BOTÓN PRINCIPAL CON GLOW 🚀 */}
+            <button type="submit" className="btn btn-warning rounded-pill px-4 fw-bold btn-glow-warning" disabled={loading}>
               {loading ? (
                 <span className="spinner-border spinner-border-sm"/>
               ) : (
@@ -77,7 +78,8 @@ export default function SearchPage() {
               <button 
                 key={m} 
                 type="button"
-                className={`btn btn-sm rounded-pill fw-bold ${mode === m ? 'btn-warning' : 'btn-outline-secondary'}`}
+                /* 🚀 CLASE GLOW CONDICIONADA AL ESTADO ACTIVO 🚀 */
+                className={`btn btn-sm rounded-pill fw-bold ${mode === m ? 'btn-warning btn-glow-warning' : 'btn-outline-secondary'}`}
                 onClick={() => setMode(m)}
               >
                 <i className={`bi ${ic} me-1`}></i>{lbl}
@@ -100,7 +102,7 @@ export default function SearchPage() {
                   background: '#222', 
                   display: 'flex', 
                   alignItems: 'center', 
-                  justifyContent: 'center' /* CORREGIDO: justifyContent en lugar de justifyCenter */
+                  justifyContent: 'center' 
                 }}>
                   <i className="bi bi-image" style={{ fontSize: '2rem', color: '#444' }}/>
                 </div>
@@ -119,6 +121,18 @@ export default function SearchPage() {
           <p className="mt-2">Sin resultados para "<strong>{query}</strong>"</p>
         </div>
       )}
+
+      {/* 🚀 BLOQUE DE ESTILOS PARA EL GLOW 🚀 */}
+      <style>{`
+        .btn-glow-warning {
+          transition: all 0.3s ease-in-out;
+        }
+        .btn-glow-warning:hover {
+          box-shadow: 0 0 15px rgba(255, 193, 7, 0.7), 0 0 25px rgba(255, 193, 7, 0.4);
+          background-color: #ffca2c;
+          transform: translateY(-1px);
+        }
+      `}</style>
     </div>
   );
 }

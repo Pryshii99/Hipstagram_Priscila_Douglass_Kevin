@@ -81,13 +81,26 @@ export default function ExplorePage() {
         ))}
       </div>
 
-      {hasMore && !loading && (
+ {hasMore && !loading && (
         <div className="text-center my-4">
-          <button className="btn btn-sm btn-outline-secondary rounded-pill px-4" onClick={() => load(page + 1)}>
+          {/* 🚀 BOTÓN CON LA NUEVA CLASE GLOW 🚀 */}
+          <button className="btn btn-warning rounded-pill px-4 fw-bold btn-glow-warning" onClick={() => load(page + 1)}>
             Cargar más
           </button>
         </div>
       )}
+
+      {/* BLOQUE DE ESTILOS CSS PARA EL BOTÓN */}
+      <style>{`
+        .btn-glow-warning {
+          transition: all 0.3s ease-in-out;
+        }
+        .btn-glow-warning:hover {
+          box-shadow: 0 0 15px rgba(255, 193, 7, 0.7), 0 0 25px rgba(255, 193, 7, 0.4);
+          background-color: #ffca2c; /* Aclara un poco el amarillo para dar sensación de iluminación */
+          transform: translateY(-1px); /* Da un pequeño efecto de que el botón se levanta */
+        }
+      `}</style>
     </div>
   );
 }
