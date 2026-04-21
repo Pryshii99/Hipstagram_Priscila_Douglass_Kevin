@@ -637,3 +637,15 @@ textarea.form-control:focus {
   line-height: 1.4;
   color: #efefef;
 }
+@media (min-width: 769px) {
+  /* Asumiendo que tu contenido principal está envuelto en un div con clase 'main-content' o similar */
+  .main-content {
+    margin-left: 80px; /* Igual al var(--sidebar-collapsed-width) */
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-bottom: 60px; /* Para que el bottom nav no tape el contenido */
+  }
+}
