@@ -362,19 +362,23 @@ router.delete('/comments/:id', requireAuth, async (req, res) => {
 });
 
 
+
 // =========================================================================
 // 🛑 LUEGO VIENE LA RUTA COMODÍN GENERAL
 // =========================================================================
-// ── DELETE /posts/:id (MEJORADO CON TRANSACCIONES - ROL DBA) ──
+// ── DELETE /posts/:id (MEJORADO: CASCADA MANUAL Y TRANSACCIONES) ──
+// ── ELIMINAR PUBLICACIÓN (Limpieza en Cascada) ──
 router.delete('/:id', requireAuth, async (req, res) => {
     const postId = parseInt(req.params.id);
     const userId = req.user.sub; 
 
+    // Usamos el cliente conectado para una transacción segura
     const client = await require('../BD/pool').pool.connect();
+    
     try {
-        await client.query('BEGIN'); // Transacción iniciada
+        await client.query('BEGIN'); // Iniciamos transacción
 
-        // Verificar propiedad
+        // 1. Verificar que el post existe y que el usuario es el dueño (o Admin)
         const pRes = await client.query('SELECT usuario_id FROM publicacion WHERE id=$1', [postId]);
         
         if (!pRes.rows[0]) {
@@ -383,34 +387,26 @@ router.delete('/:id', requireAuth, async (req, res) => {
         }
         if (pRes.rows[0].usuario_id !== userId && req.user.rol !== 'ADMIN') {
             await client.query('ROLLBACK');
-            return res.status(403).json({ error: 'No puedes eliminar una publicación que no es tuya.' });
+            return res.status(403).json({ error: 'No autorizado para eliminar esta publicación.' });
         }
 
-        // Intento de borrado
-        await client.query('DELETE FROM publicacion WHERE id=$1', [postId]);
-        
-        // Auditoría
-        await client.query(
-            `INSERT INTO auditoria (usuario_id, accion, tabla_afectada, detalles, direccion_ip) 
-             VALUES ($1, 'POST_ELIMINADO', 'publicacion', $2, $3)`,
-            [userId, JSON.stringify({ post_id: postId }), req.ip]
-        );
+        // 2. ELIMINAR DEPENDENCIAS PRIMERO (Evita el error de Llave Foránea de Postgres)
+        await client.query('DELETE FROM publicacion_hashtags WHERE publicacion_id=$1', [postId]);
+        await client.query('DELETE FROM votos WHERE publicacion_id=$1', [postId]);
+        await client.query('DELETE FROM comentarios WHERE publicacion_id=$1', [postId]);
 
-        await client.query('COMMIT'); // Se completó con éxito
-        return res.json({ message: 'Publicación eliminada.' });
+        // 3. Finalmente, eliminar la publicación maestra
+        await client.query('DELETE FROM publicacion WHERE id=$1', [postId]);
+
+        await client.query('COMMIT'); // Confirmar todos los cambios
+        return res.json({ message: 'Publicación eliminada correctamente.' });
         
     } catch (err) {
-        await client.query('ROLLBACK'); // Algo falló, deshacemos
-        
-        // Captura explícita de error de clave foránea en Postgres
-        if (err.code === '23503') {
-            return res.status(409).json({ error: 'No se puede eliminar porque existen registros dependientes (comentarios o likes).' });
-        }
-        
-        console.error(err);
-        return res.status(500).json({ error: 'Error al eliminar.' });
+        await client.query('ROLLBACK'); // Si algo falla, deshacemos todo
+        console.error("🚨 Error al eliminar publicación:", err);
+        return res.status(500).json({ error: 'Error interno del servidor al intentar eliminar.' });
     } finally {
-        client.release();
+        client.release(); // Liberamos la conexión
     }
 });
 
