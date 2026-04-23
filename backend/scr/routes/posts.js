@@ -24,9 +24,15 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
   fileFilter: (_, file, cb) => {
-    const allowed = ['.jpg','.jpeg','.png','.webp'];
-    if (allowed.includes(path.extname(file.originalname).toLowerCase())) cb(null, true);
-    else cb(new Error('Solo se permiten imágenes JPG, PNG o WebP.'));
+    // 🚀 AQUÍ AÑADIMOS '.gif' AL ARREGLO 🚀
+    const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+    
+    if (allowed.includes(path.extname(file.originalname).toLowerCase())) {
+        cb(null, true);
+    } else {
+        // 🚀 TAMBIÉN ACTUALIZAMOS EL MENSAJE DE ERROR 🚀
+        cb(new Error('Solo se permiten imágenes JPG, PNG, WebP o GIF.'));
+    }
   }
 });
 

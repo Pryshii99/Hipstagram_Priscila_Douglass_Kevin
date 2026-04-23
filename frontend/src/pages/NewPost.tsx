@@ -11,20 +11,21 @@ export default function NewPostPage() {
   const navigate = useNavigate();
   const fileRef  = useRef<HTMLInputElement>(null);
 
-  const [file,     setFile]     = useState<File | null>(null);
-  const [preview,  setPreview]  = useState<string | null>(null);
-  const [desc,     setDesc]     = useState('');
+  const [file,      setFile]     = useState<File | null>(null);
+  const [preview,   setPreview]  = useState<string | null>(null);
+  const [desc,      setDesc]     = useState('');
   const [tagInput, setTagInput] = useState('');
-  const [tags,     setTags]     = useState<string[]>([]);
-  const [loading,  setLoading]  = useState(false);
-  const [drag,     setDrag]     = useState(false);
+  const [tags,      setTags]     = useState<string[]>([]);
+  const [loading,   setLoading]  = useState(false);
+  const [drag,      setDrag]     = useState(false);
 
   function pickFile(f: File | null | undefined) {
     if (!f) return;
     if (f.size > 5*1024*1024) { showToast('El archivo supera 5 MB.','error'); return; }
-    // Solución al error de includes en strings (usando indexOf)
-    if (['image/jpeg','image/png','image/webp'].indexOf(f.type) === -1) {
-      showToast('Solo JPG, PNG o WebP.','error'); return;
+    
+    // 🚀 CAMBIO 1: Agregamos 'image/gif' al arreglo de validación frontal 🚀
+    if (['image/jpeg','image/png','image/webp','image/gif'].indexOf(f.type) === -1) {
+      showToast('Solo JPG, PNG, WebP o GIF.','error'); return;
     }
     setFile(f); setPreview(URL.createObjectURL(f));
   }
@@ -35,7 +36,6 @@ export default function NewPostPage() {
       let t = tagInput.trim().toLowerCase();
       if (!t.startsWith('#')) t = '#' + t;
       
-      // Solución al error de includes en arreglos (usando indexOf)
       if (tags.indexOf(t) === -1 && tags.length < MAX_TAGS) {
         setTags(p => [...p, t]);
       }
@@ -45,7 +45,7 @@ export default function NewPostPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!file) { showToast('Selecciona una imagen.','error'); return; }
+    if (!file) { showToast('Selecciona una imagen o GIF.','error'); return; }
     const fd = new FormData();
     fd.append('imagen', file);
     fd.append('descripcion', desc);
@@ -57,7 +57,6 @@ export default function NewPostPage() {
       showToast('¡Publicación enviada! Aparecerá en el feed.');
       navigate('/feed');
     } catch (error: any) { 
-      // Interceptamos el mensaje específico que viene desde posts.js en el backend
       const backendError = error.response?.data?.error;
       showToast(backendError || 'Error al publicar.', 'error'); 
     } finally { 
@@ -76,6 +75,7 @@ export default function NewPostPage() {
           {/* Drop zone / preview */}
           {preview ? (
             <div className="mb-3 position-relative">
+              {/* Aquí el GIF se mostrará animado automáticamente gracias a URL.createObjectURL */}
               <img src={preview} alt="preview" className="hip-preview" />
               <button type="button"
                 className="btn btn-sm btn-danger position-absolute top-0 end-0 m-2 rounded-circle"
@@ -91,9 +91,11 @@ export default function NewPostPage() {
               onDrop={e => { e.preventDefault(); setDrag(false); pickFile(e.dataTransfer.files[0]); }}
               onClick={() => fileRef.current?.click()}>
               <i className="bi bi-cloud-arrow-up-fill d-block mb-2"></i>
-              <p className="mb-1 fw-semibold">Arrastra tu foto aquí o haz click</p>
-              <small className="text-muted">JPG, PNG, WebP · Máximo 5 MB</small>
-              <input ref={fileRef} type="file" accept="image/*" className="d-none"
+              {/* 🚀 CAMBIO 2: Actualizamos los textos 🚀 */}
+              <p className="mb-1 fw-semibold">Arrastra tu foto o GIF aquí o haz click</p>
+              <small className="text-muted">JPG, PNG, WebP, GIF · Máximo 5 MB</small>
+              {/* 🚀 CAMBIO 3: Especificamos image/gif en el accept 🚀 */}
+              <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="d-none"
                 onChange={e => pickFile(e.target.files?.[0])} />
             </div>
           )}
@@ -105,7 +107,7 @@ export default function NewPostPage() {
               <span className="text-muted fw-normal ms-1">(opcional)</span>
             </label>
             <textarea className="form-control" rows={3} style={{ borderRadius:10,resize:'none' }}
-              placeholder="Escribe algo sobre tu foto..." maxLength={MAX_DESC}
+              placeholder="Escribe algo sobre tu publicación..." maxLength={MAX_DESC}
               value={desc} onChange={e => setDesc(e.target.value)} disabled={loading} />
             <div className="text-end mt-1"
               style={{ fontSize:'0.78rem', color: desc.length > 110 ? '#dc3545' : '#aaa' }}>
