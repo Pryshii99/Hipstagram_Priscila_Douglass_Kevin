@@ -144,15 +144,22 @@ export default function Navbar() {
           border-color: #dc3545 !important;
         }
 
-        @media (min-width: 769px) {
+       @media (min-width: 769px) {
           .hip-sidebar {
             position: fixed;
             top: 0;
             left: 0;
             height: 100vh;
             width: var(--sidebar-collapsed-width);
-            background-color: var(--sidebar-bg);
-            border-right: 2px solid var(--accent-color); 
+            
+            /* 🚀 EFECTO GLASSMORPHISM AQUÍ 🚀 */
+            background-color: rgba(18, 18, 18, 0.4); /* Negro transparente */
+            backdrop-filter: blur(12px) saturate(160%); /* Desenfoque esmerilado */
+            -webkit-backdrop-filter: blur(12px) saturate(160%); /* Soporte Safari */
+            
+            /* Borde brillante más sutil para simular el canto del cristal */
+            border-right: 1px solid rgba(255, 193, 7, 0.3); 
+            
             padding: 20px 10px;
             display: flex;
             flex-direction: column;
@@ -224,7 +231,11 @@ export default function Navbar() {
             left: 0;
             width: 100%;
             height: 60px;
-            background-color: var(--sidebar-bg);
+            background-color: rgba(18, 18, 18, 0.6); 
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            
+            border-top: 1px solid rgba(255, 193, 7, 0.3);
             border-top: 2px solid var(--accent-color); 
             display: flex;
             flex-direction: row;

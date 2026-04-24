@@ -122,7 +122,7 @@ export default function SearchPage() {
         </div>
       )}
 
-      {/* 🚀 BLOQUE DE ESTILOS PARA EL GLOW 🚀 */}
+   
       <style>{`
         .btn-glow-warning {
           transition: all 0.3s ease-in-out;
