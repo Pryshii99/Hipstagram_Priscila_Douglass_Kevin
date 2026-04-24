@@ -9,5 +9,3 @@ node {
     }
   }
 }
-// hacete el commit de los dos archivos nuevos okey
-// raro no me aparecen esos dos archivcos cuando hago el git status

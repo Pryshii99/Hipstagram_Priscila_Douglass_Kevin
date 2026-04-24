@@ -20,14 +20,25 @@ export default function SearchPage() {
   }, []);
 
   async function doSearch(q = query, m = mode) {
-    if (!q.trim()) return;
+    let finalQuery = q.trim();
+    if (!finalQuery) return;
+
+    
+    // Si el modo es hashtag pero el texto NO empieza con '#', 
+    // detenemos la búsqueda y mostramos 0 resultados.
+    if (m === 'hashtag' && !finalQuery.startsWith('#')) {
+      setResults([]);
+      return;
+    }
+
     setLoading(true);
     try {
       const fn = m === 'hashtag' ? searchAPI.byHashtag : searchAPI.freeText;
-      const { data } = await fn(q);
+      const { data } = await fn(finalQuery);
       setResults(data.posts ?? data ?? []);
     } catch {
       // Manejo silencioso del error para mantener la UX
+      setResults([]);
     } finally {
       setLoading(false);
     }
@@ -36,7 +47,7 @@ export default function SearchPage() {
   function onSearch(e: React.FormEvent) {
     e.preventDefault(); 
     setSearchParams({ q: query, mode }); 
-    doSearch();
+    doSearch(query, mode); // Usamos los valores actuales directamente
   }
 
   return (
@@ -61,7 +72,7 @@ export default function SearchPage() {
               />
             </div>
             
-            {/* 🚀 BOTÓN PRINCIPAL CON GLOW 🚀 */}
+         
             <button type="submit" className="btn btn-warning rounded-pill px-4 fw-bold btn-glow-warning" disabled={loading}>
               {loading ? (
                 <span className="spinner-border spinner-border-sm"/>
@@ -78,7 +89,7 @@ export default function SearchPage() {
               <button 
                 key={m} 
                 type="button"
-                /* 🚀 CLASE GLOW CONDICIONADA AL ESTADO ACTIVO 🚀 */
+                
                 className={`btn btn-sm rounded-pill fw-bold ${mode === m ? 'btn-warning btn-glow-warning' : 'btn-outline-secondary'}`}
                 onClick={() => setMode(m)}
               >
@@ -116,9 +127,10 @@ export default function SearchPage() {
       )}
 
       {!loading && results.length === 0 && query && (
-        <div className="text-center py-5 text-muted">
-          <i className="bi bi-search" style={{ fontSize: '2.5rem' }}></i>
-          <p className="mt-2">Sin resultados para "<strong>{query}</strong>"</p>
+        <div className="text-center py-5">
+          <i className="bi bi-search text-white-50" style={{ fontSize: '2.5rem' }}></i>
+          
+          <p className="mt-2 text-white">Sin resultados para "<strong>{query}</strong>"</p>
         </div>
       )}
 
