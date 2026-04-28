@@ -71,11 +71,29 @@ router.get('/feed', requireAuth, async (req, res) => {
 });
 
 // ── GET /posts/explore ──
+// ── GET /posts/explore ──
 router.get('/explore', requireAuth, async (req, res) => {
   const page  = parseInt(req.query.page  || '1');
   const limit = parseInt(req.query.limit || '10');
+  // 🚀 NUEVO: Capturamos el parámetro sort (por defecto 'likes')
+  const sort  = req.query.sort || 'likes'; 
   const offset = (page - 1) * limit;
   const userId = req.user.sub;
+
+  // 🚀 NUEVO: Evaluamos qué ordenamiento pidió el Frontend de manera segura
+  let orderByClause = '';
+  switch (sort) {
+    case 'recent':
+      orderByClause = 'ORDER BY p.fecha_creacion DESC';
+      break;
+    case 'oldest':
+      orderByClause = 'ORDER BY p.fecha_creacion ASC';
+      break;
+    case 'likes':
+    default:
+      orderByClause = 'ORDER BY p.likes_count DESC';
+      break;
+  }
 
   try {
     const result = await query(`
@@ -92,9 +110,9 @@ router.get('/explore', requireAuth, async (req, res) => {
       FROM publicacion p
       JOIN usuarios u ON u.id = p.usuario_id
       WHERE p.estado = 'PUBLICADO'
-      ORDER BY p.likes_count DESC
+      ${orderByClause} 
       LIMIT $1 OFFSET $2
-    `, [limit, offset, userId]);
+    `, [limit, offset, userId]); // Nota: quitamos la coma estática antes de LIMIT, ahora la controla la variable.
 
     return res.json({ posts: result.rows });
   } catch (err) {
@@ -157,6 +175,36 @@ router.get('/search', requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Error en búsqueda.' });
+  }
+});
+// ── GET /search/user ──
+router.get('/search/user', requireAuth, async (req, res) => {
+  let q = (req.query.q || '').trim();
+  const page   = parseInt(req.query.page || '1');
+  const offset = (page - 1) * 10;
+
+  if (!q) return res.status(400).json({ error: 'Parámetro q requerido.' });
+
+  // Limpieza inteligente: Si el usuario escribe "@Sebastian", lo convertimos a "Sebastian"
+  if (q.startsWith('@')) {
+    q = q.substring(1);
+  }
+
+  try {
+    const result = await query(`
+      SELECT p.id, p.imagen_url, p.descripcion, p.likes_count, p.fecha_creacion, u.nombre_usuario
+      FROM publicacion p 
+      JOIN usuarios u ON u.id = p.usuario_id
+      WHERE p.estado = 'PUBLICADO'
+        AND u.nombre_usuario ILIKE $1
+      ORDER BY p.fecha_creacion DESC
+      LIMIT 10 OFFSET $2
+    `, [`%${q}%`, offset]);
+
+    return res.json({ posts: result.rows, total: result.rowCount });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Error en búsqueda por usuario.' });
   }
 });
 

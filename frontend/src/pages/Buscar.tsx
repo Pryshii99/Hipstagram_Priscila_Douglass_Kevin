@@ -23,7 +23,6 @@ export default function SearchPage() {
     let finalQuery = q.trim();
     if (!finalQuery) return;
 
-    
     // Si el modo es hashtag pero el texto NO empieza con '#', 
     // detenemos la búsqueda y mostramos 0 resultados.
     if (m === 'hashtag' && !finalQuery.startsWith('#')) {
@@ -33,7 +32,12 @@ export default function SearchPage() {
 
     setLoading(true);
     try {
-      const fn = m === 'hashtag' ? searchAPI.byHashtag : searchAPI.freeText;
+      // 🚀 MODIFICACIÓN: Enrutamos la petición según los 3 modos posibles
+      let fn;
+      if (m === 'hashtag') fn = searchAPI.byHashtag;
+      else if (m === 'user') fn = searchAPI.byUser; // <- Llama a la nueva ruta
+      else fn = searchAPI.freeText;
+
       const { data } = await fn(finalQuery);
       setResults(data.posts ?? data ?? []);
     } catch {
@@ -66,13 +70,13 @@ export default function SearchPage() {
                 type="text" 
                 className="form-control bg-dark text-white border-secondary" 
                 style={{ paddingLeft: 36, borderRadius: 10 }}
-                placeholder={mode === 'hashtag' ? '#guate, #viaje...' : 'Busca cualquier texto...'}
+                // 🚀 MODIFICACIÓN: Placeholder dinámico para el modo usuario
+                placeholder={mode === 'hashtag' ? '#guate, #viaje...' : mode === 'user' ? 'ej. kevin, esau...' : 'Busca cualquier texto...'}
                 value={query} 
                 onChange={e => setQuery(e.target.value)} 
               />
             </div>
             
-         
             <button type="submit" className="btn btn-warning rounded-pill px-4 fw-bold btn-glow-warning" disabled={loading}>
               {loading ? (
                 <span className="spinner-border spinner-border-sm"/>
@@ -85,11 +89,15 @@ export default function SearchPage() {
           </div>
 
           <div className="d-flex gap-2">
-            {([['hashtag', 'bi-hash', 'Por hashtag'], ['text', 'bi-fonts', 'Texto libre']] as const).map(([m, ic, lbl]) => (
+            {/* 🚀 MODIFICACIÓN: Añadida la opción de Usuarios al arreglo */}
+            {([
+              ['hashtag', 'bi-hash', 'Por hashtag'], 
+              ['text', 'bi-fonts', 'Texto libre'],
+              ['user', 'bi-person-fill', 'Usuarios']
+            ] as const).map(([m, ic, lbl]) => (
               <button 
                 key={m} 
                 type="button"
-                
                 className={`btn btn-sm rounded-pill fw-bold ${mode === m ? 'btn-warning btn-glow-warning' : 'btn-outline-secondary'}`}
                 onClick={() => setMode(m)}
               >
@@ -129,12 +137,10 @@ export default function SearchPage() {
       {!loading && results.length === 0 && query && (
         <div className="text-center py-5">
           <i className="bi bi-search text-white-50" style={{ fontSize: '2.5rem' }}></i>
-          
           <p className="mt-2 text-white">Sin resultados para "<strong>{query}</strong>"</p>
         </div>
       )}
 
-   
       <style>{`
         .btn-glow-warning {
           transition: all 0.3s ease-in-out;

@@ -20,11 +20,16 @@ export default function ExplorePage() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
+  
+  // NUEVO: Estado para el ordenamiento (por defecto 'likes' para Destacadas)
+  const [sortBy, setSortBy] = useState('likes');
 
-  async function load(p: number) {
+  // NUEVO: La función load ahora recibe el ordenamiento actual
+  async function load(p: number, currentSort: string) {
     setLoading(true);
     try {
-      const { data } = await postsAPI.getExplore(p);
+      // Se envía el parámetro de ordenamiento a la API
+      const { data } = await postsAPI.getExplore(p, currentSort);
       const arr: Publicacion[] = data.posts ?? data ?? [];
       p === 1 ? setPosts(arr) : setPosts(prev => [...prev, ...arr]);
       setHasMore(arr.length === 10);
@@ -36,17 +41,40 @@ export default function ExplorePage() {
     }
   }
 
-  useEffect(() => { load(1); }, []);
+  // NUEVO: Se vuelve a ejecutar desde la página 1 cada vez que cambia el ordenamiento
+  useEffect(() => { 
+    load(1, sortBy); 
+  }, [sortBy]);
 
   const medals = ['🥇', '🥈', '🥉'];
 
   return (
     <div className="hip-explore-container">
-      {/* Encabezado discreto estilo Instagram */}
-      <div className="px-2 py-3">
+      {/* Encabezado discreto estilo Instagram con el Combobox integrado */}
+      <div className="px-2 py-3 d-flex justify-content-between align-items-center">
         <h6 className="fw-bold mb-0 text-uppercase" style={{ letterSpacing: '1px', fontSize: '0.8rem', color: '#8e8e8e' }}>
           <i className="bi bi-grid-3x3 me-2"></i>Publicaciones Destacadas
         </h6>
+        
+        {/* NUEVO: Combobox de ordenamiento estilizado */}
+        <select 
+          value={sortBy} 
+          onChange={(e) => setSortBy(e.target.value)}
+          style={{ 
+            padding: '4px 10px', 
+            borderRadius: '6px', 
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            background: 'rgba(0, 0, 0, 0.6)',
+            color: 'white',
+            outline: 'none',
+            fontSize: '0.8rem',
+            cursor: 'pointer'
+          }}
+        >
+          <option value="likes">Más Populares</option>
+          <option value="recent">Más Recientes</option>
+          <option value="oldest">Más Antiguas</option>
+        </select>
       </div>
 
       {loading && posts.length === 0 && (
@@ -81,10 +109,11 @@ export default function ExplorePage() {
         ))}
       </div>
 
- {hasMore && !loading && (
+      {hasMore && !loading && (
         <div className="text-center my-4">
           {/* 🚀 BOTÓN CON LA NUEVA CLASE GLOW 🚀 */}
-          <button className="btn btn-warning rounded-pill px-4 fw-bold btn-glow-warning" onClick={() => load(page + 1)}>
+          {/* NUEVO: El botón ahora pasa el sortBy actual */}
+          <button className="btn btn-warning rounded-pill px-4 fw-bold btn-glow-warning" onClick={() => load(page + 1, sortBy)}>
             Cargar más
           </button>
         </div>
@@ -97,8 +126,8 @@ export default function ExplorePage() {
         }
         .btn-glow-warning:hover {
           box-shadow: 0 0 15px rgba(255, 193, 7, 0.7), 0 0 25px rgba(255, 193, 7, 0.4);
-          background-color: #ffca2c; /* Aclara un poco el amarillo para dar sensación de iluminación */
-          transform: translateY(-1px); /* Da un pequeño efecto de que el botón se levanta */
+          background-color: #ffca2c;
+          transform: translateY(-1px);
         }
       `}</style>
     </div>

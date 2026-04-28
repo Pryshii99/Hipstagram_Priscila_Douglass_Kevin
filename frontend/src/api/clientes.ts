@@ -44,11 +44,11 @@ export const authAPI = {
 
 // ── Posts ──
 export const postsAPI = {
-  getFeed:    (page = 1)        => api.get(`/posts/feed?page=${page}&limit=10`),
-  getExplore: (page = 1)        => api.get(`/posts/explore?page=${page}&limit=10`),
-  getById:    (id: number)      => api.get(`/posts/${id}`),
-  create:     (fd: FormData)    => api.post('/posts', fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
-  remove:     (id: number)      => api.delete(`/posts/${id}`),
+  getFeed:    (page = 1)                 => api.get(`/posts/feed?page=${page}&limit=10`),
+  getExplore: (page = 1, sort = 'likes') => api.get(`/posts/explore?page=${page}&limit=10&sort=${sort}`),
+  getById:    (id: number)               => api.get(`/posts/${id}`),
+  create:     (fd: FormData)             => api.post('/posts', fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  remove:     (id: number)               => api.delete(`/posts/${id}`),
 };
 
 // ── Votos ───
@@ -58,17 +58,18 @@ export const votesAPI = {
 };
 
 // ── Comentarios ───
-// ── Comentarios ───
 export const commentsAPI = {
   list:   (postId: number, page = 1) => api.get(`/posts/comments/${postId}?page=${page}&limit=20`),
   create: (postId: number, text: string) => api.post(`/posts/comments/${postId}`, { contenido: text }),
-  remove: (commentId: number) => api.delete(`/posts/comments/${commentId}`), // <- NUEVA LÍNEA
+  remove: (commentId: number) => api.delete(`/posts/comments/${commentId}`),
 };
 
 // ── Búsqueda ───
 export const searchAPI = {
   byHashtag: (q: string, page = 1) => api.get(`/posts/search/hashtag?q=${encodeURIComponent(q)}&page=${page}`),
   freeText:  (q: string, page = 1) => api.get(`/posts/search?q=${encodeURIComponent(q)}&page=${page}`),
+  // 🚀 NUEVA LÍNEA: Endpoint para buscar usuarios
+  byUser:    (username: string, page = 1) => api.get(`/posts/search/user?q=${encodeURIComponent(username)}&page=${page}`)
 };
 
 // ── Usuarios ───
@@ -87,7 +88,5 @@ export const adminAPI = {
   setBanned:     (d: object)                  => api.put('/admin/banned-words', d),
   getAudit:      (params?: object)            => api.get('/admin/audit', { params }),
 };
-
-
 
 export default api;
