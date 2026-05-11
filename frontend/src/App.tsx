@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider }        from './context/ToastContext';
@@ -13,8 +13,9 @@ import ProfilePage  from './pages/Perfil';
 import SearchPage   from './pages/Buscar';
 import AdminPage    from './pages/Admin';
 import Navbar       from './componentes/Navbar';
-// 🚀 NUEVO: Importamos el fondo animado
 import AnimatedBackground from './componentes/AnimatedBackground';
+// 🚀 Importamos el Splash Screen
+import SplashScreen       from './componentes/SplashScreen';
 
 const Spinner = () => (
   <div className="hip-spin">
@@ -46,6 +47,24 @@ function PublicOnly({ children }: { children: ReactNode }) {
 
 function AppRoutes() {
   const { isAuth } = useAuth();
+  
+  // 🚀 LÓGICA DE ANIMACIÓN: Leemos si venimos del login
+  const [showSplash, setShowSplash] = useState(() => sessionStorage.getItem('hip_splash') === 'true');
+
+  useEffect(() => {
+    if (showSplash) {
+      // Borramos la bandera para que no se repita si el usuario presiona F5
+      sessionStorage.removeItem('hip_splash');
+      const timer = setTimeout(() => setShowSplash(false), 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [showSplash]);
+
+  // Si la animación está activa, la mostramos y ocultamos la UI (Navbar y Rutas)
+  if (showSplash) {
+    return <SplashScreen />;
+  }
+
   return (
     <>
       {isAuth && <Navbar />}
@@ -71,7 +90,6 @@ export default function App() {
     <AuthProvider>
       <ToastProvider>
         <BrowserRouter>
-       
           <AnimatedBackground />
           <AppRoutes />
         </BrowserRouter>

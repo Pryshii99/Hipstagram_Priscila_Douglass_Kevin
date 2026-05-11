@@ -4,6 +4,8 @@ import { authAPI } from '../api/clientes';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { Usuario } from '../types';
+// 🚀 NUEVO: Importamos el SplashScreen
+import SplashScreen from '../componentes/SplashScreen';
 
 export default function LoginPage() {
   const { login }     = useAuth();
@@ -15,22 +17,43 @@ export default function LoginPage() {
   const [showPwd,  setShowPwd]  = useState(false);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
+  
+  // 🚀 NUEVO: Estado para controlar si mostramos la animación
+  const [showSplash, setShowSplash] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!correo || !password) { setError('Completa todos los campos.'); return; }
     setLoading(true); setError('');
+    
     try {
+      // 1. Validamos credenciales en el backend
       const { data } = await authAPI.login({ correo, password });
-      login(data.user as Usuario, data.accessToken as string);
-      showToast(`¡Bienvenido/a, @${(data.user as Usuario).nombre_usuario}! 🎉`);
-      navigate((data.user as Usuario).rol === 'ADMIN' ? '/admin' : '/feed');
+      
+      // 2. 🚀 ACTIVAMOS LA ANIMACIÓN Y OCULTAMOS EL FORMULARIO
+      setShowSplash(true);
+      
+      // 3. 🚀 RETRASAMOS LA NOTIFICACIÓN GLOBAL Y LA NAVEGACIÓN 3.5 SEGUNDOS
+      setTimeout(() => {
+        // Todo esto se ejecuta HASTA QUE termina la animación
+        login(data.user as Usuario, data.accessToken as string);
+        showToast(`¡Bienvenido/a, @${(data.user as Usuario).nombre_usuario}! 🎉`);
+        navigate((data.user as Usuario).rol === 'ADMIN' ? '/admin' : '/feed');
+      }, 3500);
+
     } catch (err: any) {
       const s = err.response?.status;
       if (s === 401) setError('Correo o contraseña incorrectos.');
       else if (s === 403) setError('Tu cuenta está desactivada.');
       else setError('Error de conexión.');
-    } finally { setLoading(false); }
+      
+      setLoading(false); // Liberamos el botón si hubo error
+    } 
+  }
+
+  // 🚀 NUEVO: Si la animación está activa, renderizamos SplashScreen en vez del form
+  if (showSplash) {
+    return <SplashScreen />;
   }
 
   return (

@@ -683,3 +683,55 @@ textarea.form-control:focus {
   0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.7; }
   50% { transform: translate(50px, -70px) scale(1.35); opacity: 1.0; }
 }
+/* =========================================================================
+   🚀 SPLASH SCREEN (ANIMACIÓN TIPO NETFLIX) 🚀
+   ========================================================================= */
+.hip-splash-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999; /* Por encima de todo */
+  /* Desaparece por completo después de 3.5 segundos */
+  animation: splash-hide 0.5s ease-in-out 3s forwards; 
+}
+
+.hip-splash-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* El zoom cinemático hacia adelante */
+  animation: netflix-zoom 3.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+.hip-splash-icon {
+  font-size: 5rem;
+  color: var(--hip-yellow);
+  filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.8));
+}
+
+.hip-splash-text {
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--hip-yellow);
+  letter-spacing: -2px;
+  margin-top: 10px;
+  text-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+}
+
+@keyframes netflix-zoom {
+  0% { transform: scale(0.8); opacity: 0; }
+  10% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: scale(4); opacity: 0; } /* Zoom inmenso y desvanecimiento */
+}
+
+@keyframes splash-hide {
+  100% { opacity: 0; visibility: hidden; }
+}
