@@ -249,7 +249,9 @@ router.patch('/users/:id/status', requireAuth, requireRole('ADMIN'), async (req,
 
 // GET /api/v1/admin/audit -> Histórico de transacciones [cite: 121, 149, 199-201]
 router.get('/audit', requireAuth, requireRole('ADMIN'), async (req, res) => {
-    const { usuario, accion } = req.query;
+    // 🚀 LÓGICA DE FILTRADO DINÁMICO ACTUALIZADA
+    let { q, action, table } = req.query;
+
     try {
         let sql = `
             SELECT a.id, a.fecha_creacion, a.accion, a.tabla_afectada, a.direccion_ip, 
@@ -257,15 +259,42 @@ router.get('/audit', requireAuth, requireRole('ADMIN'), async (req, res) => {
             FROM auditoria a 
             LEFT JOIN usuarios u ON a.usuario_id = u.id 
             WHERE 1=1`;
+        
         const params = [];
 
-        if (usuario) {
-            params.push(`%${usuario}%`);
-            sql += ` AND u.nombre_usuario ILIKE $${params.length}`;
+        // Filtro de Búsqueda Rápida (Usuario o IP)
+        if (q) {
+            // Limpiamos el @ si el usuario lo incluye
+            if (q.startsWith('@')) q = q.substring(1);
+            params.push(`%${q}%`);
+            sql += ` AND (u.nombre_usuario ILIKE $${params.length} OR a.direccion_ip ILIKE $${params.length})`;
         }
-        if (accion) {
-            params.push(accion);
-            sql += ` AND a.accion = $${params.length}`;
+
+        // Filtro por Acción (Agrupador)
+        if (action && action !== 'ALL') {
+            switch(action) {
+                case 'AUTH':
+                    sql += ` AND a.accion IN ('LOGIN_EXITOSO', 'LOGOUT', 'LOGIN_FALLIDO', 'REGISTRO')`;
+                    break;
+                case 'POSTS':
+                    sql += ` AND a.accion IN ('POST_CREADO', 'POST_ELIMINADO')`;
+                    break;
+                case 'MODERATION':
+                    sql += ` AND a.accion IN ('APROBAR_POST', 'BLOQUEAR_POST', 'RECHAZAR_POST', 'POST_AUTO_BLOQUEADO')`;
+                    break;
+                case 'INTERACTION':
+                    sql += ` AND a.accion IN ('VOTO', 'COMENTARIO_CREADO', 'COMENTARIO_ELIMINADO')`;
+                    break;
+                default:
+                    params.push(action);
+                    sql += ` AND a.accion = $${params.length}`;
+            }
+        }
+
+        // Filtro por Tabla
+        if (table && table !== 'ALL') {
+            params.push(table);
+            sql += ` AND a.tabla_afectada = $${params.length}`;
         }
 
         sql += ` ORDER BY a.fecha_creacion DESC LIMIT 50`;

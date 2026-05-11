@@ -19,16 +19,25 @@ export default function AdminPage() {
   const [users,   setUsers]   = useState<Usuario[]>([]);
   const [audit,   setAudit]   = useState<Auditoria[]>([]);
   const [banned,  setBanned]  = useState('');
+  
+  // Estados para filtros
   const [filter,  setFilter]  = useState('PENDIENTE');
   const [userQ,   setUserQ]   = useState('');
+  
+  // 🚀 NUEVO: Estados para los filtros de Auditoría
+  const [auditQ, setAuditQ] = useState('');
+  const [auditAction, setAuditAction] = useState('ALL');
+  const [auditTable, setAuditTable] = useState('ALL');
+
   const [loading, setLoading] = useState(false);
 
+  // 🚀 NUEVO: Agregamos auditAction y auditTable a las dependencias para que recargue al cambiar de opción
   useEffect(() => {
     if (tab==='posts') loadPosts();
     if (tab==='users') loadUsers();
     if (tab==='audit') loadAudit();
     if (tab==='words') loadBanned();
-  }, [tab, filter]);
+  }, [tab, filter, auditAction, auditTable]);
 
   async function loadPosts() {
     setLoading(true);
@@ -52,10 +61,18 @@ export default function AdminPage() {
     finally { setLoading(false); }
   }
 
+  // 🚀 NUEVO: Modificamos loadAudit para enviar los parámetros a Axios
   async function loadAudit() {
     setLoading(true);
     try { 
-      const response = await adminAPI.getAudit(); 
+      // Construimos el objeto de parámetros solo con lo que tenga valor
+      const params = {
+        q: auditQ || undefined,
+        action: auditAction === 'ALL' ? undefined : auditAction,
+        table: auditTable === 'ALL' ? undefined : auditTable
+      };
+
+      const response = await adminAPI.getAudit(params); 
       const data = response.data || response;
       setAudit(data.audit_logs || data.registros || data.auditoria || []); 
     }
@@ -81,18 +98,16 @@ export default function AdminPage() {
     catch { showToast('Error al moderar.','error'); }
   }
 
-  // 🚀 LÓGICA DE CONFIRMACIÓN AÑADIDA
   async function handleSetUserStatus(id: number, activate: boolean) {
-    // Si la acción es desactivar (activate === false), pedimos confirmación
     if (!activate) {
       const confirmacion = window.confirm("¿Está seguro de desactivar a este usuario?");
-      if (!confirmacion) return; // Si dice Cancelar, salimos de la función
+      if (!confirmacion) return; 
     }
 
     try { 
       await adminAPI.setUserStatus(id, activate); 
       showToast(`Usuario ${activate ? 'activado' : 'desactivado'} ✓`); 
-      loadUsers(); // Recargamos para ver el cambio de estado
+      loadUsers(); 
     }
     catch { showToast('Error al cambiar estado del usuario.','error'); }
   }
@@ -268,27 +283,89 @@ export default function AdminPage() {
 
       {/* ── AUDITORÍA ── */}
       {tab==='audit' && (
-        <div className="table-responsive">
-          {loading && <div className="hip-spin"><div className="spinner-border text-warning"/></div>}
-          <table className="table table-dark table-hover align-middle" style={{ fontSize:'0.85rem' }}>
-            <thead>
-              <tr><th className="text-warning">Fecha</th><th className="text-warning">Usuario</th><th className="text-warning">Acción</th><th className="text-warning">Tabla</th><th className="text-warning">IP</th></tr>
-            </thead>
-            <tbody>
-              {audit.map(a => (
-                <tr key={a.id}>
-                  <td><small className="text-light">{timeStr(a.fecha_creacion)}</small></td>
-                  <td>{a.nombre_usuario ? <span className="fw-semibold">@{a.nombre_usuario}</span> : <span className="text-muted">[sistema]</span>}</td>
-                  <td><span className="badge bg-secondary border border-warning text-warning">{a.accion}</span></td>
-                  <td><small className="text-light">{a.tabla_afectada ?? '—'}</small></td>
-                  <td><small className="text-light">{a.direccion_ip ?? '—'}</small></td>
-                </tr>
-              ))}
-              {!loading && audit.length===0 && (
-                <tr><td colSpan={5} className="text-center text-muted py-4">No hay registros</td></tr>
-              )}
-            </tbody>
-          </table>
+        <div>
+          {/* 🚀 NUEVO: BARRA DE BÚSQUEDA Y FILTROS */}
+          <div className="hip-card p-3 mb-4" style={{ border: '1px solid var(--hip-border)', borderRadius: '15px', background: 'var(--hip-dark2)' }}>
+            <div className="row g-3 align-items-end">
+              
+              <div className="col-md-5">
+                <label className="form-label fw-bold" style={{ fontSize: '0.8rem', color: 'var(--hip-yellow)', letterSpacing: '1px' }}>
+                  <i className="bi bi-search me-2"></i>BÚSQUEDA RÁPIDA
+                </label>
+                <div className="hip-input-wrap">
+                  <i className="bi bi-person-badge i-left"></i>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    placeholder="Usuario (ej. Sebastian) o IP..." 
+                    value={auditQ} 
+                    onChange={(e) => setAuditQ(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && loadAudit()}
+                  />
+                </div>
+              </div>
+
+              <div className="col-md-4">
+                <label className="form-label fw-bold" style={{ fontSize: '0.8rem', color: '#888', letterSpacing: '1px' }}>
+                  FILTRAR POR ACCIÓN
+                </label>
+                <select 
+                  className="form-control" 
+                  style={{ cursor: 'pointer', appearance: 'auto' }}
+                  value={auditAction} 
+                  onChange={(e) => setAuditAction(e.target.value)}
+                >
+                  <option value="ALL">Todas las acciones</option>
+                  <option value="AUTH">Autenticación (Login/Logout)</option>
+                  <option value="POSTS">Publicaciones</option>
+                  <option value="MODERATION">Moderación (Aprobar/Bloquear)</option>
+                  <option value="INTERACTION">Interacciones (Votos/Comentarios)</option>
+                </select>
+              </div>
+
+              <div className="col-md-3">
+                <label className="form-label fw-bold" style={{ fontSize: '0.8rem', color: '#888', letterSpacing: '1px' }}>
+                  FILTRAR POR TABLA
+                </label>
+                <select 
+                  className="form-control" 
+                  style={{ cursor: 'pointer', appearance: 'auto' }}
+                  value={auditTable} 
+                  onChange={(e) => setAuditTable(e.target.value)}
+                >
+                  <option value="ALL">Todas las tablas</option>
+                  <option value="usuarios">Usuarios</option>
+                  <option value="publicacion">Publicación</option>
+                  <option value="comentarios">Comentarios</option>
+                  <option value="votos">Votos</option>
+                </select>
+              </div>
+
+            </div>
+          </div>
+
+          <div className="table-responsive">
+            {loading && <div className="hip-spin"><div className="spinner-border text-warning"/></div>}
+            <table className="table table-dark table-hover align-middle" style={{ fontSize:'0.85rem' }}>
+              <thead>
+                <tr><th className="text-warning">Fecha</th><th className="text-warning">Usuario</th><th className="text-warning">Acción</th><th className="text-warning">Tabla</th><th className="text-warning">IP</th></tr>
+              </thead>
+              <tbody>
+                {audit.map(a => (
+                  <tr key={a.id}>
+                    <td><small className="text-light">{timeStr(a.fecha_creacion)}</small></td>
+                    <td>{a.nombre_usuario ? <span className="fw-semibold">@{a.nombre_usuario}</span> : <span className="text-muted">[sistema]</span>}</td>
+                    <td><span className="badge bg-secondary border border-warning text-warning">{a.accion}</span></td>
+                    <td><small className="text-light">{a.tabla_afectada ?? '—'}</small></td>
+                    <td><small className="text-light">{a.direccion_ip ?? '—'}</small></td>
+                  </tr>
+                ))}
+                {!loading && audit.length===0 && (
+                  <tr><td colSpan={5} className="text-center text-muted py-4">No hay registros</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

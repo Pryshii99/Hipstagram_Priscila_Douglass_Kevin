@@ -13,6 +13,8 @@ import ProfilePage  from './pages/Perfil';
 import SearchPage   from './pages/Buscar';
 import AdminPage    from './pages/Admin';
 import Navbar       from './componentes/Navbar';
+// 🚀 NUEVO: Importamos el fondo animado
+import AnimatedBackground from './componentes/AnimatedBackground';
 
 const Spinner = () => (
   <div className="hip-spin">
@@ -69,6 +71,8 @@ export default function App() {
     <AuthProvider>
       <ToastProvider>
         <BrowserRouter>
+       
+          <AnimatedBackground />
           <AppRoutes />
         </BrowserRouter>
       </ToastProvider>
