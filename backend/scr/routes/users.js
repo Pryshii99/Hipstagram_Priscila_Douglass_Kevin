@@ -13,7 +13,7 @@ router.get('/me', requireAuth, async (req, res) => {
     );
     const pRes = await query(
       `SELECT p.id, p.imagen_url, p.descripcion, p.likes_count, p.dislikes_count, p.estado, p.fecha_creacion
-       FROM publicacion p WHERE p.usuario_id=$1 ORDER BY p.fecha_creacion DESC`,
+       FROM publicacion p WHERE p.usuario_id=$1 AND p.estado='PUBLICADO' ORDER BY p.fecha_creacion DESC`,
       [req.user.sub]
     );
     return res.json({ user: uRes.rows[0], posts: pRes.rows });

@@ -156,7 +156,12 @@ router.get('/search', requireAuth, async (req, res) => {
 
   if (!q) return res.status(400).json({ error: 'Parámetro q requerido.' });
 
+  if (q.includes('#')) {
+    return res.json({ posts: [], total: 0 });
+  }
+
   try {
+
     const result = await query(`
       SELECT DISTINCT p.id, p.imagen_url, p.descripcion, p.likes_count, p.fecha_creacion, u.nombre_usuario
       FROM publicacion p JOIN usuarios u ON u.id=p.usuario_id
@@ -177,6 +182,7 @@ router.get('/search', requireAuth, async (req, res) => {
     return res.status(500).json({ error: 'Error en búsqueda.' });
   }
 });
+
 // ── GET /search/user ──
 router.get('/search/user', requireAuth, async (req, res) => {
   let q = (req.query.q || '').trim();
@@ -190,6 +196,10 @@ router.get('/search/user', requireAuth, async (req, res) => {
     q = q.substring(1);
   }
 
+  // 🚀 MEJORA 1: Flexibilidad. Convertimos "Douglas Catu" en "%Douglas%Catu%"
+  // Esto permite encontrar "Douglas Esaú Catú" ignorando las palabras de en medio.
+  const searchPattern = `%${q.replace(/\s+/g, '%')}%`;
+
   try {
     const result = await query(`
       SELECT p.id, p.imagen_url, p.descripcion, p.likes_count, p.fecha_creacion, u.nombre_usuario
@@ -197,9 +207,13 @@ router.get('/search/user', requireAuth, async (req, res) => {
       JOIN usuarios u ON u.id = p.usuario_id
       WHERE p.estado = 'PUBLICADO'
         AND u.nombre_usuario ILIKE $1
-      ORDER BY p.fecha_creacion DESC
-      LIMIT 10 OFFSET $2
-    `, [`%${q}%`, offset]);
+      -- 🚀 MEJORA 2: Relevancia. Ordenamos primero los que se llamen EXACTAMENTE igual,
+      -- luego los que contengan la palabra, y finalmente por fecha.
+      ORDER BY 
+        (u.nombre_usuario ILIKE $2) DESC,
+        p.fecha_creacion DESC
+      LIMIT 10 OFFSET $3
+    `, [searchPattern, q, offset]);
 
     return res.json({ posts: result.rows, total: result.rowCount });
   } catch (err) {
