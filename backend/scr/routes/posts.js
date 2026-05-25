@@ -431,20 +431,15 @@ router.delete('/comments/:id', requireAuth, async (req, res) => {
 
 
 
-// =========================================================================
-// 🛑 LUEGO VIENE LA RUTA COMODÍN GENERAL
-// =========================================================================
-// ── DELETE /posts/:id (MEJORADO: CASCADA MANUAL Y TRANSACCIONES) ──
-// ── ELIMINAR PUBLICACIÓN (Limpieza en Cascada) ──
+// ── DELETE /posts/:id (Validación de Integridad Referencial Nativa) ──
 router.delete('/:id', requireAuth, async (req, res) => {
     const postId = parseInt(req.params.id);
     const userId = req.user.sub; 
 
-    // Usamos el cliente conectado para una transacción segura
     const client = await require('../BD/pool').pool.connect();
     
     try {
-        await client.query('BEGIN'); // Iniciamos transacción
+        await client.query('BEGIN');
 
         // 1. Verificar que el post existe y que el usuario es el dueño (o Admin)
         const pRes = await client.query('SELECT usuario_id FROM publicacion WHERE id=$1', [postId]);
@@ -458,26 +453,40 @@ router.delete('/:id', requireAuth, async (req, res) => {
             return res.status(403).json({ error: 'No autorizado para eliminar esta publicación.' });
         }
 
-        // 2. ELIMINAR DEPENDENCIAS PRIMERO (Evita el error de Llave Foránea de Postgres)
-        await client.query('DELETE FROM publicacion_hashtags WHERE publicacion_id=$1', [postId]);
-        await client.query('DELETE FROM votos WHERE publicacion_id=$1', [postId]);
-        await client.query('DELETE FROM comentarios WHERE publicacion_id=$1', [postId]);
-
-        // 3. Finalmente, eliminar la publicación maestra
+        // 2. 🚀 INTENTAR ELIMINAR DIRECTAMENTE LA PUBLICACIÓN
+        // Si tiene comentarios o votos, PostgreSQL bloqueará esto y lanzará un error 23503
         await client.query('DELETE FROM publicacion WHERE id=$1', [postId]);
 
-        await client.query('COMMIT'); // Confirmar todos los cambios
+        await client.query('COMMIT'); 
         return res.json({ message: 'Publicación eliminada correctamente.' });
         
-    } catch (err) {
-        await client.query('ROLLBACK'); // Si algo falla, deshacemos todo
+} catch (err) {
+        await client.query('ROLLBACK');
+        
+        // 🚀 CAPTURA BLINDADA (Inglés y Español)
+        const errorText = (err.message || String(err)).toLowerCase();
+        
+        // Esto imprimirá en tu terminal de Node exactamente qué bota Postgres
+        console.log("🔍 DEBUG BD - Código:", err.code, "| Mensaje:", errorText); 
+
+        if (
+            err.code === '23503' || 
+            errorText.includes('foreign key') || 
+            errorText.includes('llave foránea') || 
+            errorText.includes('violates') || 
+            errorText.includes('viola')
+        ) {
+            return res.status(409).json({ 
+                error: 'No se puede eliminar porque existen registros dependientes (comentarios o votos).' 
+            });
+        }
+
         console.error("🚨 Error al eliminar publicación:", err);
         return res.status(500).json({ error: 'Error interno del servidor al intentar eliminar.' });
     } finally {
-        client.release(); // Liberamos la conexión
+        client.release();
     }
 });
-
 
 // ── POST /votes/:postId ──
 router.post('/votes/:postId', requireAuth, async (req, res) => {

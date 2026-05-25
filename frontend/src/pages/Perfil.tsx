@@ -43,7 +43,7 @@ export default function ProfilePage() {
   };
 
   // Función real de eliminación (se ejecuta al confirmar en el modal)
-  const confirmDelete = async () => {
+const confirmDelete = async () => {
     if (postToDelete === null) return;
 
     try {
@@ -52,15 +52,15 @@ export default function ProfilePage() {
       setPosts(prevPosts => prevPosts.filter(p => p.id !== postToDelete)); 
     } catch (error: any) {
       if (error.response?.status === 409 || error.response?.status === 400) {
-        showToast('No se puede eliminar porque existen registros dependientes.', 'error');
+        // ✅ Línea actualizada para leer el mensaje del backend:
+        showToast(error.response?.data?.error || 'No se puede eliminar.', 'error');
       } else {
         showToast('Error al intentar eliminar la publicación.', 'error');
       }
     } finally {
-      setPostToDelete(null); // Cierra el modal pase lo que pase
+      setPostToDelete(null); 
     }
   };
-
   if (loading) return <div className="hip-spin"><div className="spinner-border text-primary"/></div>;
 
   const ini = (profile?.nombre_usuario || user?.nombre_usuario || '?')[0].toUpperCase();
