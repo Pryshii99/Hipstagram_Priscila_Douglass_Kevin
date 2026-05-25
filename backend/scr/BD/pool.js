@@ -2,40 +2,42 @@ const { Pool } = require('pg');
 require('dotenv').config();
 
 const pool = new Pool({
-  host:     process.env.DB_HOST     || 'localhost',
+  host:     process.env.DB_HOST,
   port:     parseInt(process.env.DB_PORT || '5432'),
-  // Cambiamos DB_NAME por DB_DATABASE para que coincida con tu .env
-  // Y cambiamos el fallback por 'Hisptagram' (con la p)
-  database: process.env.DB_DATABASE || 'Hisptagram', 
-  user:     process.env.DB_USER     || 'postgres',
-  password: process.env.DB_PASSWORD || '',
-  max: 10,                  
+  database: process.env.DB_DATABASE,
+  user:     process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  max: 10,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  // Aumentamos a 10 segundos porque la conexión a la nube es más lenta que la local
+  connectionTimeoutMillis: 10000, 
+  // AWS RDS requiere SSL para conexiones cifradas
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-
+// Prueba de conexión mejorada
 pool.connect((err, client, release) => {
   if (err) {
-    console.error(' Error conectando a PostgreSQL:', err.message);
-    console.error('   Verifica tu archivo .env y que PostgreSQL esté corriendo.');
+    console.error('❌ Error crítico conectando a PostgreSQL en AWS:', err.message);
+    console.error('   Si el error es "Connection Timeout", revisa el Security Group de AWS.');
     return;
   }
+  console.log('✅ PostgreSQL conectado exitosamente a AWS RDS');
   release();
-  console.log(' PostgreSQL conectado correctamente');
 });
-
 
 async function query(text, params) {
   const start = Date.now();
   const res   = await pool.query(text, params);
   const dur   = Date.now() - start;
+  // Solo loguear en desarrollo para mantener la consola limpia en producción
   if (process.env.NODE_ENV === 'development') {
-    console.log(`  🔵 Query (${dur}ms):`, text.substring(0, 60));
+    console.log(` 🔵 Query (${dur}ms):`, text.substring(0, 60));
   }
   return res;
 }
-
 
 async function audit(usuarioId, accion, tabla, detalles, ip) {
   try {
