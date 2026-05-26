@@ -63,14 +63,25 @@ router.get('/feed', requireAuth, async (req, res) => {
       LIMIT $1 OFFSET $2
     `, [limit, offset, userId]);
 
-    return res.json({ posts: result.rows, page, limit });
+    // Detecta dinámicamente si estás en Render o en Localhost
+const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+
+// Construimos la URL completa para cada imagen
+const postsConUrlCompleta = result.rows.map(post => ({
+  ...post,
+  imagen_url: post.imagen_url ? `${baseUrl}${post.imagen_url}` : null
+}));
+
+return res.json({ posts: postsConUrlCompleta, page, limit });
+
+
   } catch (err) {
     console.error('Error en feed:', err);
     return res.status(500).json({ error: 'Error al obtener el feed.' });
   }
 });
 
-// ── GET /posts/explore ──
+
 // ── GET /posts/explore ──
 router.get('/explore', requireAuth, async (req, res) => {
   const page  = parseInt(req.query.page  || '1');
@@ -114,7 +125,13 @@ router.get('/explore', requireAuth, async (req, res) => {
       LIMIT $1 OFFSET $2
     `, [limit, offset, userId]); // Nota: quitamos la coma estática antes de LIMIT, ahora la controla la variable.
 
-    return res.json({ posts: result.rows });
+ const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+const postsConUrlCompleta = result.rows.map(post => ({
+  ...post,
+  imagen_url: post.imagen_url ? `${baseUrl}${post.imagen_url}` : null
+}));
+return res.json({ posts: postsConUrlCompleta });
+
   } catch (err) {
     console.error('Error en explore:', err);
     return res.status(500).json({ error: 'Error al obtener explorar.' });
@@ -141,7 +158,12 @@ router.get('/search/hashtag', requireAuth, async (req, res) => {
       LIMIT 10 OFFSET $2
     `, [q.startsWith('#') ? q : '#'+q, offset]);
 
-    return res.json({ posts: result.rows, total: result.rowCount });
+   const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+const postsConUrlCompleta = result.rows.map(post => ({
+  ...post,
+  imagen_url: post.imagen_url ? `${baseUrl}${post.imagen_url}` : null
+}));
+return res.json({ posts: postsConUrlCompleta, total: result.rowCount });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Error en búsqueda.' });
@@ -176,7 +198,12 @@ router.get('/search', requireAuth, async (req, res) => {
       LIMIT 10 OFFSET $2
     `, [`%${q}%`, offset]);
 
-    return res.json({ posts: result.rows, total: result.rowCount });
+    const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+const postsConUrlCompleta = result.rows.map(post => ({
+  ...post,
+  imagen_url: post.imagen_url ? `${baseUrl}${post.imagen_url}` : null
+}));
+return res.json({ posts: postsConUrlCompleta, total: result.rowCount });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Error en búsqueda.' });
@@ -215,7 +242,12 @@ router.get('/search/user', requireAuth, async (req, res) => {
       LIMIT 10 OFFSET $3
     `, [searchPattern, q, offset]);
 
-    return res.json({ posts: result.rows, total: result.rowCount });
+  const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+const postsConUrlCompleta = result.rows.map(post => ({
+  ...post,
+  imagen_url: post.imagen_url ? `${baseUrl}${post.imagen_url}` : null
+}));
+return res.json({ posts: postsConUrlCompleta, total: result.rowCount });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Error en búsqueda por usuario.' });
@@ -264,7 +296,12 @@ router.get('/:id', requireAuth, async (req, res) => {
     `, [postId, userId]);
 
     if (!pRes.rows[0]) return res.status(404).json({ error: 'Publicación no encontrada.' });
-    return res.json(pRes.rows[0]);
+    const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+const post = pRes.rows[0];
+if (post.imagen_url) {
+    post.imagen_url = `${baseUrl}${post.imagen_url}`;
+}
+return res.json(post);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Error al obtener la publicación.' });

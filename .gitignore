@@ -1,6 +1,13 @@
+# Dependencias
 node_modules/
 frontend/node_modules/
 backend/node_modules/
+
+# Variables de Entorno y Secretos
+.env
 backend/.env
+frontend/.env
+
+# Archivos generados y de sistema
 backend/uploads/
 .DS_Store
