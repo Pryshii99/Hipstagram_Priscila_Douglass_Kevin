@@ -102,10 +102,10 @@ export default function PostPage() {
             </div>
           </div>
         </div>
-        {post.imagen_url
+ {post.imagen_url
   ? <img 
-      src={`http://localhost:3000${post.imagen_url}`} 
-      alt="" 
+      src={post.imagen_url} 
+      alt={post.descripcion || 'Imagen de la publicación'} 
       className="hip-card-img" 
       style={{ cursor:'default' }}
     />

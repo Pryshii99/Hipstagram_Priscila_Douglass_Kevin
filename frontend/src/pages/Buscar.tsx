@@ -110,11 +110,11 @@ export default function SearchPage() {
 
       {results.length > 0 && (
         <div className="hip-grid">
-          {results.map(p => (
-            <div key={p.id} className="hip-grid-item" onClick={() => navigate(`/post/${p.id}`)}>
-              {p.imagen_url ? (
-                <img src={`http://localhost:3000${p.imagen_url}`} alt="" loading="lazy" />
-              ) : (
+      {results.map(p => (
+  <div key={p.id} className="hip-grid-item" onClick={() => navigate(`/post/${p.id}`)}>
+    {p.imagen_url ? (
+      <img src={p.imagen_url} alt="" loading="lazy" />
+    ) : (
                 <div style={{ 
                   width: '100%', 
                   height: '100%', 

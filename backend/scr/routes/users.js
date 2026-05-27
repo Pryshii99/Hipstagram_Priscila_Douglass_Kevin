@@ -16,7 +16,12 @@ router.get('/me', requireAuth, async (req, res) => {
        FROM publicacion p WHERE p.usuario_id=$1 AND p.estado='PUBLICADO' ORDER BY p.fecha_creacion DESC`,
       [req.user.sub]
     );
-    return res.json({ user: uRes.rows[0], posts: pRes.rows });
+    const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+    const postsConUrlCompleta = pRes.rows.map(post => ({
+      ...post,
+      imagen_url: post.imagen_url ? `${baseUrl}${post.imagen_url}` : null
+    }));
+    return res.json({ user: uRes.rows[0], posts: postsConUrlCompleta });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Error al obtener el perfil.' });
@@ -43,7 +48,12 @@ router.get('/admin/posts', requireAuth, requireRole('ADMIN'), async (req, res) =
       FROM publicacion p JOIN usuarios u ON u.id=p.usuario_id
       WHERE p.estado=$1 ORDER BY p.fecha_creacion DESC LIMIT 10 OFFSET $2
     `, [estado, offset]);
-    return res.json({ posts: result.rows });
+    const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+    const postsConUrlCompleta = result.rows.map(post => ({
+      ...post,
+      imagen_url: post.imagen_url ? `${baseUrl}${post.imagen_url}` : null
+    }));
+    return res.json({ posts: postsConUrlCompleta });
   } catch (err) { return res.status(500).json({ error: 'Error.' }); }
 });
 
@@ -118,7 +128,12 @@ router.get('/:id', requireAuth, async (req, res) => {
       `SELECT id, imagen_url, likes_count FROM publicacion WHERE usuario_id=$1 AND estado='PUBLICADO' ORDER BY likes_count DESC`,
       [req.params.id]
     );
-    return res.json({ user: uRes.rows[0], posts: pRes.rows });
+    const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+    const postsConUrlCompleta = pRes.rows.map(post => ({
+      ...post,
+      imagen_url: post.imagen_url ? `${baseUrl}${post.imagen_url}` : null
+    }));
+    return res.json({ user: uRes.rows[0], posts: postsConUrlCompleta });
   } catch (err) {
     return res.status(500).json({ error: 'Error.' });
   }

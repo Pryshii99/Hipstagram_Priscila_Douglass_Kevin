@@ -69,14 +69,14 @@ export default function FeedPage() { // Asumí el nombre FeedPage
               </div>
             </div>
 
-            {/* 2. Imagen Central */}
-            <div className="insta-card-img-container">
-              {p.imagen_url ? (
-                <img src={`http://localhost:3000${p.imagen_url}`} alt="Post" loading="lazy" />
-              ) : (
-                <div className="insta-img-ph"><i className="bi bi-image" /></div>
-              )}
-            </div>
+        {/* 2. Imagen Central */}
+<div className="insta-card-img-container">
+  {p.imagen_url ? (
+    <img src={p.imagen_url} alt="Post" loading="lazy" />
+  ) : (
+    <div className="insta-img-ph"><i className="bi bi-image" /></div>
+  )}
+</div>
 
             {/* 3. Acciones y Contenido */}
             <div className="p-3 pb-2">

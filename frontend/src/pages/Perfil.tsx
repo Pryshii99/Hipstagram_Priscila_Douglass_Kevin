@@ -120,10 +120,10 @@ const confirmDelete = async () => {
 
       <div className="hip-grid">
         {posts.map(p => (
-          <div key={p.id} className="hip-grid-item" onClick={() => navigate(`/post/${p.id}`)}>
+        <div key={p.id} className="hip-grid-item" onClick={() => navigate(`/post/${p.id}`)}>
             {p.imagen_url
               ? <img 
-                  src={`${BASE_URL}${p.imagen_url}`} 
+                  src={p.imagen_url} 
                   alt="" 
                   loading="lazy"
                   onError={(e) => {

@@ -85,10 +85,10 @@ export default function ExplorePage() {
       <div className="insta-grid">
         {posts.map((p, i) => (
           <div key={p.id} className="insta-item" onClick={() => navigate(`/post/${p.id}`)}>
-            {p.imagen_url ? (
-              <img src={`http://localhost:3000${p.imagen_url}`} alt="" loading="lazy" />
-            ) : (
-              <div className="insta-placeholder">
+          {p.imagen_url ? (
+  <img src={p.imagen_url} alt="" loading="lazy" />
+) : (
+  <div className="insta-placeholder">
                 <i className="bi bi-image" />
               </div>
             )}
