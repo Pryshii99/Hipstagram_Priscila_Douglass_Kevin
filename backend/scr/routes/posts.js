@@ -1,36 +1,41 @@
 const express = require('express');
 const multer  = require('multer');
+const multerS3 = require('multer-s3');
+const { S3Client } = require('@aws-sdk/client-s3');
 const path    = require('path');
-const fs      = require('fs');
 const { query, audit }       = require('../BD/pool');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
-// ── Configuración de Multer (almacenamiento local) ──
-const uploadDir = path.join(__dirname, '../../uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (_, __, cb) => cb(null, uploadDir),
-  filename:    (_, file, cb) => {
-    const ext  = path.extname(file.originalname).toLowerCase();
-    const name = `${Date.now()}-${Math.round(Math.random()*1e9)}${ext}`;
-    cb(null, name);
+// ── Configuración del Cliente S3 ──
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   }
 });
 
+// ── Configuración de Multer (Almacenamiento en AWS S3) ──
 const upload = multer({
-  storage,
+  storage: multerS3({
+    s3: s3,
+    bucket: process.env.AWS_BUCKET_NAME,
+    contentType: multerS3.AUTO_CONTENT_TYPE, // Detecta automáticamente si es JPG, PNG, GIF, etc.
+    key: function (req, file, cb) {
+      const ext = path.extname(file.originalname).toLowerCase();
+      // Guardamos dentro de una "carpeta virtual" uploads/ en el bucket
+      const name = `uploads/${Date.now()}-${Math.round(Math.random()*1e9)}${ext}`;
+      cb(null, name);
+    }
+  }),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
   fileFilter: (_, file, cb) => {
-    // 🚀 AQUÍ AÑADIMOS '.gif' AL ARREGLO 🚀
     const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
-    
     if (allowed.includes(path.extname(file.originalname).toLowerCase())) {
         cb(null, true);
     } else {
-        // 🚀 TAMBIÉN ACTUALIZAMOS EL MENSAJE DE ERROR 🚀
         cb(new Error('Solo se permiten imágenes JPG, PNG, WebP o GIF.'));
     }
   }
@@ -63,17 +68,17 @@ router.get('/feed', requireAuth, async (req, res) => {
       LIMIT $1 OFFSET $2
     `, [limit, offset, userId]);
 
-    // Detecta dinámicamente si estás en Render o en Localhost
-const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+    const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
 
-// Construimos la URL completa para cada imagen
-const postsConUrlCompleta = result.rows.map(post => ({
-  ...post,
-  imagen_url: post.imagen_url ? `${baseUrl}${post.imagen_url}` : null
-}));
+    // Lógica retrocompatible: detecta si es AWS o local
+    const postsConUrlCompleta = result.rows.map(post => ({
+      ...post,
+      imagen_url: post.imagen_url 
+        ? (post.imagen_url.startsWith('http') ? post.imagen_url : `${baseUrl}${post.imagen_url}`) 
+        : null
+    }));
 
-return res.json({ posts: postsConUrlCompleta, page, limit });
-
+    return res.json({ posts: postsConUrlCompleta, page, limit });
 
   } catch (err) {
     console.error('Error en feed:', err);
@@ -86,12 +91,10 @@ return res.json({ posts: postsConUrlCompleta, page, limit });
 router.get('/explore', requireAuth, async (req, res) => {
   const page  = parseInt(req.query.page  || '1');
   const limit = parseInt(req.query.limit || '10');
-  // 🚀 NUEVO: Capturamos el parámetro sort (por defecto 'likes')
   const sort  = req.query.sort || 'likes'; 
   const offset = (page - 1) * limit;
   const userId = req.user.sub;
 
-  // 🚀 NUEVO: Evaluamos qué ordenamiento pidió el Frontend de manera segura
   let orderByClause = '';
   switch (sort) {
     case 'recent':
@@ -123,14 +126,16 @@ router.get('/explore', requireAuth, async (req, res) => {
       WHERE p.estado = 'PUBLICADO'
       ${orderByClause} 
       LIMIT $1 OFFSET $2
-    `, [limit, offset, userId]); // Nota: quitamos la coma estática antes de LIMIT, ahora la controla la variable.
+    `, [limit, offset, userId]); 
 
- const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
-const postsConUrlCompleta = result.rows.map(post => ({
-  ...post,
-  imagen_url: post.imagen_url ? `${baseUrl}${post.imagen_url}` : null
-}));
-return res.json({ posts: postsConUrlCompleta });
+    const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+    const postsConUrlCompleta = result.rows.map(post => ({
+      ...post,
+      imagen_url: post.imagen_url 
+        ? (post.imagen_url.startsWith('http') ? post.imagen_url : `${baseUrl}${post.imagen_url}`) 
+        : null
+    }));
+    return res.json({ posts: postsConUrlCompleta });
 
   } catch (err) {
     console.error('Error en explore:', err);
@@ -158,12 +163,14 @@ router.get('/search/hashtag', requireAuth, async (req, res) => {
       LIMIT 10 OFFSET $2
     `, [q.startsWith('#') ? q : '#'+q, offset]);
 
-   const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
-const postsConUrlCompleta = result.rows.map(post => ({
-  ...post,
-  imagen_url: post.imagen_url ? `${baseUrl}${post.imagen_url}` : null
-}));
-return res.json({ posts: postsConUrlCompleta, total: result.rowCount });
+    const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+    const postsConUrlCompleta = result.rows.map(post => ({
+      ...post,
+      imagen_url: post.imagen_url 
+        ? (post.imagen_url.startsWith('http') ? post.imagen_url : `${baseUrl}${post.imagen_url}`) 
+        : null
+    }));
+    return res.json({ posts: postsConUrlCompleta, total: result.rowCount });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Error en búsqueda.' });
@@ -199,11 +206,13 @@ router.get('/search', requireAuth, async (req, res) => {
     `, [`%${q}%`, offset]);
 
     const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
-const postsConUrlCompleta = result.rows.map(post => ({
-  ...post,
-  imagen_url: post.imagen_url ? `${baseUrl}${post.imagen_url}` : null
-}));
-return res.json({ posts: postsConUrlCompleta, total: result.rowCount });
+    const postsConUrlCompleta = result.rows.map(post => ({
+      ...post,
+      imagen_url: post.imagen_url 
+        ? (post.imagen_url.startsWith('http') ? post.imagen_url : `${baseUrl}${post.imagen_url}`) 
+        : null
+    }));
+    return res.json({ posts: postsConUrlCompleta, total: result.rowCount });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Error en búsqueda.' });
@@ -218,13 +227,10 @@ router.get('/search/user', requireAuth, async (req, res) => {
 
   if (!q) return res.status(400).json({ error: 'Parámetro q requerido.' });
 
-  // Limpieza inteligente: Si el usuario escribe "@Sebastian", lo convertimos a "Sebastian"
   if (q.startsWith('@')) {
     q = q.substring(1);
   }
 
-  // 🚀 MEJORA 1: Flexibilidad. Convertimos "Douglas Catu" en "%Douglas%Catu%"
-  // Esto permite encontrar "Douglas Esaú Catú" ignorando las palabras de en medio.
   const searchPattern = `%${q.replace(/\s+/g, '%')}%`;
 
   try {
@@ -234,20 +240,20 @@ router.get('/search/user', requireAuth, async (req, res) => {
       JOIN usuarios u ON u.id = p.usuario_id
       WHERE p.estado = 'PUBLICADO'
         AND u.nombre_usuario ILIKE $1
-      -- 🚀 MEJORA 2: Relevancia. Ordenamos primero los que se llamen EXACTAMENTE igual,
-      -- luego los que contengan la palabra, y finalmente por fecha.
       ORDER BY 
         (u.nombre_usuario ILIKE $2) DESC,
         p.fecha_creacion DESC
       LIMIT 10 OFFSET $3
     `, [searchPattern, q, offset]);
 
-  const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
-const postsConUrlCompleta = result.rows.map(post => ({
-  ...post,
-  imagen_url: post.imagen_url ? `${baseUrl}${post.imagen_url}` : null
-}));
-return res.json({ posts: postsConUrlCompleta, total: result.rowCount });
+    const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+    const postsConUrlCompleta = result.rows.map(post => ({
+      ...post,
+      imagen_url: post.imagen_url 
+        ? (post.imagen_url.startsWith('http') ? post.imagen_url : `${baseUrl}${post.imagen_url}`) 
+        : null
+    }));
+    return res.json({ posts: postsConUrlCompleta, total: result.rowCount });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Error en búsqueda por usuario.' });
@@ -296,12 +302,17 @@ router.get('/:id', requireAuth, async (req, res) => {
     `, [postId, userId]);
 
     if (!pRes.rows[0]) return res.status(404).json({ error: 'Publicación no encontrada.' });
+    
     const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
-const post = pRes.rows[0];
-if (post.imagen_url) {
-    post.imagen_url = `${baseUrl}${post.imagen_url}`;
-}
-return res.json(post);
+    const post = pRes.rows[0];
+    
+    if (post.imagen_url) {
+        post.imagen_url = post.imagen_url.startsWith('http') 
+          ? post.imagen_url 
+          : `${baseUrl}${post.imagen_url}`;
+    }
+    
+    return res.json(post);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Error al obtener la publicación.' });
@@ -318,7 +329,9 @@ router.post('/', requireAuth, upload.single('imagen'), async (req, res) => {
   }
 
   const descripcion = (req.body.descripcion || '').substring(0, 128);
-  const imagenUrl   = `/uploads/${req.file.filename}`;
+  
+  // 🚀 AQUÍ ESTÁ LA MAGIA S3: req.file.location contiene la URL pública de AWS
+  const imagenUrl   = req.file.location;
 
   let hashtags = [];
   try { hashtags = JSON.parse(req.body.hashtags || '[]'); } catch {}
@@ -401,11 +414,6 @@ router.post('/', requireAuth, upload.single('imagen'), async (req, res) => {
 
   } catch (err) {
     await client.query('ROLLBACK');
-    try {
-        if (req.file) fs.unlinkSync(req.file.path);
-    } catch (e) {
-        console.error('Error al limpiar archivo huerfano:', e);
-    }
     console.error('Error al crear post:', err);
     return res.status(500).json({ error: 'Error al procesar la publicación.' });
   } finally {
@@ -413,8 +421,6 @@ router.post('/', requireAuth, upload.single('imagen'), async (req, res) => {
   }
 });
 
-// =========================================================================
-// 🚀 ¡AQUÍ ESTÁ LA CORRECCIÓN! LA RUTA ESPECÍFICA DEBE IR ANTES
 // =========================================================================
 // ── DELETE /comments/:id (Eliminar comentario - Rol DBA) ──
 router.delete('/comments/:id', requireAuth, async (req, res) => {
@@ -424,9 +430,8 @@ router.delete('/comments/:id', requireAuth, async (req, res) => {
 
   const client = await require('../BD/pool').pool.connect();
   try {
-    await client.query('BEGIN'); // Iniciamos transacción
+    await client.query('BEGIN'); 
 
-    // 1. Verificamos que el comentario exista y le pertenezca al usuario
     const cRes = await client.query(
       'SELECT usuario_id, publicacion_id FROM comentarios WHERE id=$1', 
       [commentId]
@@ -444,10 +449,8 @@ router.delete('/comments/:id', requireAuth, async (req, res) => {
 
     const postId = cRes.rows[0].publicacion_id;
 
-    // 2. Eliminamos físicamente el comentario [cite: 250]
     await client.query('DELETE FROM comentarios WHERE id=$1', [commentId]);
 
-    // 3. Dejamos rastro en la Auditoría 
     await client.query(
       `INSERT INTO auditoria (usuario_id, accion, tabla_afectada, detalles, direccion_ip)
        VALUES ($1, 'COMENTARIO_ELIMINADO', 'comentarios', $2, $3)`,
@@ -466,8 +469,6 @@ router.delete('/comments/:id', requireAuth, async (req, res) => {
   }
 });
 
-
-
 // ── DELETE /posts/:id (Validación de Integridad Referencial Nativa) ──
 router.delete('/:id', requireAuth, async (req, res) => {
     const postId = parseInt(req.params.id);
@@ -478,7 +479,6 @@ router.delete('/:id', requireAuth, async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // 1. Verificar que el post existe y que el usuario es el dueño (o Admin)
         const pRes = await client.query('SELECT usuario_id FROM publicacion WHERE id=$1', [postId]);
         
         if (!pRes.rows[0]) {
@@ -490,8 +490,6 @@ router.delete('/:id', requireAuth, async (req, res) => {
             return res.status(403).json({ error: 'No autorizado para eliminar esta publicación.' });
         }
 
-        // 2. 🚀 INTENTAR ELIMINAR DIRECTAMENTE LA PUBLICACIÓN
-        // Si tiene comentarios o votos, PostgreSQL bloqueará esto y lanzará un error 23503
         await client.query('DELETE FROM publicacion WHERE id=$1', [postId]);
 
         await client.query('COMMIT'); 
@@ -500,10 +498,8 @@ router.delete('/:id', requireAuth, async (req, res) => {
 } catch (err) {
         await client.query('ROLLBACK');
         
-        // 🚀 CAPTURA BLINDADA (Inglés y Español)
         const errorText = (err.message || String(err)).toLowerCase();
         
-        // Esto imprimirá en tu terminal de Node exactamente qué bota Postgres
         console.log("🔍 DEBUG BD - Código:", err.code, "| Mensaje:", errorText); 
 
         if (
