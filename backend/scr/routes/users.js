@@ -16,11 +16,17 @@ router.get('/me', requireAuth, async (req, res) => {
        FROM publicacion p WHERE p.usuario_id=$1 AND p.estado='PUBLICADO' ORDER BY p.fecha_creacion DESC`,
       [req.user.sub]
     );
+    
     const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+    
+    // 🚀 CORRECCIÓN S3: Verificamos si la imagen ya trae "http"
     const postsConUrlCompleta = pRes.rows.map(post => ({
       ...post,
-      imagen_url: post.imagen_url ? `${baseUrl}${post.imagen_url}` : null
+      imagen_url: post.imagen_url 
+        ? (post.imagen_url.startsWith('http') ? post.imagen_url : `${baseUrl}${post.imagen_url}`) 
+        : null
     }));
+    
     return res.json({ user: uRes.rows[0], posts: postsConUrlCompleta });
   } catch (err) {
     console.error(err);
@@ -48,10 +54,15 @@ router.get('/admin/posts', requireAuth, requireRole('ADMIN'), async (req, res) =
       FROM publicacion p JOIN usuarios u ON u.id=p.usuario_id
       WHERE p.estado=$1 ORDER BY p.fecha_creacion DESC LIMIT 10 OFFSET $2
     `, [estado, offset]);
+    
     const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+    
+    // 🚀 CORRECCIÓN S3
     const postsConUrlCompleta = result.rows.map(post => ({
       ...post,
-      imagen_url: post.imagen_url ? `${baseUrl}${post.imagen_url}` : null
+      imagen_url: post.imagen_url 
+        ? (post.imagen_url.startsWith('http') ? post.imagen_url : `${baseUrl}${post.imagen_url}`) 
+        : null
     }));
     return res.json({ posts: postsConUrlCompleta });
   } catch (err) { return res.status(500).json({ error: 'Error.' }); }
@@ -128,11 +139,17 @@ router.get('/:id', requireAuth, async (req, res) => {
       `SELECT id, imagen_url, likes_count FROM publicacion WHERE usuario_id=$1 AND estado='PUBLICADO' ORDER BY likes_count DESC`,
       [req.params.id]
     );
+    
     const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+    
+    // 🚀 CORRECCIÓN S3
     const postsConUrlCompleta = pRes.rows.map(post => ({
       ...post,
-      imagen_url: post.imagen_url ? `${baseUrl}${post.imagen_url}` : null
+      imagen_url: post.imagen_url 
+        ? (post.imagen_url.startsWith('http') ? post.imagen_url : `${baseUrl}${post.imagen_url}`) 
+        : null
     }));
+    
     return res.json({ user: uRes.rows[0], posts: postsConUrlCompleta });
   } catch (err) {
     return res.status(500).json({ error: 'Error.' });
