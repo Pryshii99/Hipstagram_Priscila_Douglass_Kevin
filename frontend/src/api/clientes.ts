@@ -62,6 +62,7 @@ export const commentsAPI = {
   list:   (postId: number, page = 1) => api.get(`/posts/comments/${postId}?page=${page}&limit=20`),
   create: (postId: number, text: string) => api.post(`/posts/comments/${postId}`, { contenido: text }),
   remove: (commentId: number) => api.delete(`/posts/comments/${commentId}`),
+    update: (id: number, contenido: string) => api.put(`/posts/comments/${id}`, { contenido }),
 };
 
 // ── Búsqueda ───

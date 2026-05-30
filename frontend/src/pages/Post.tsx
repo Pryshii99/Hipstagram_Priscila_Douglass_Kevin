@@ -99,7 +99,27 @@ export default function PostPage() {
     finally { setSending(false); }
   }
 
-  // 🚀 NUEVA FUNCIÓN PARA ELIMINAR EL COMENTARIO 🚀
+  // 🚀 NUEVA FUNCIÓN PARA EDITAR EL COMENTARIO (Front-end) 🚀
+  async function handleEditComment(commentId: number, textoActual: string) {
+    // Usamos un prompt rápido y nativo para la edición
+    const nuevoTexto = window.prompt('Edita tu comentario:', textoActual);
+    
+    // Verificamos que el usuario haya escrito algo y que sea diferente al original
+    if (nuevoTexto !== null && nuevoTexto.trim() !== '' && nuevoTexto !== textoActual) {
+      try {
+        
+       await commentsAPI.update(commentId, nuevoTexto.trim());
+
+       
+        setComments(prev => prev.map(c => c.id === commentId ? { ...c, contenido: nuevoTexto.trim() } : c));
+        showToast('Comentario editado en pantalla ✓', 'info');
+      } catch (error) {
+        showToast('Error al intentar editar el comentario.', 'error');
+      }
+    }
+  }
+
+  // 🚀 FUNCIÓN PARA ELIMINAR EL COMENTARIO 🚀
   async function handleDeleteComment(commentId: number) {
     if (!window.confirm('¿Seguro que deseas eliminar tu comentario?')) return;
     try {
@@ -195,7 +215,7 @@ export default function PostPage() {
             </p>
           )}
           {comments.map(c => (
-          
+            
             <div key={c.id} className="hip-cmt d-flex justify-content-between align-items-center mb-2">
               <div className="d-flex gap-2">
                 <div className="hip-avatar sm" style={{ flexShrink:0 }}>{c.nombre_usuario?.[0]?.toUpperCase()}</div>
@@ -206,15 +226,26 @@ export default function PostPage() {
                 </div>
               </div>
 
-              {/* Mostrar botón solo si el usuario actual es el dueño del comentario */}
+              {/* Mostrar botones solo si el usuario actual es el dueño del comentario */}
               {user?.nombre_usuario === c.nombre_usuario && (
-                <button 
-                  className="btn btn-sm text-danger border-0 px-2 btn-delete-cmt" 
-                  onClick={() => handleDeleteComment(c.id)}
-                  title="Eliminar comentario"
-                >
-                  <i className="bi bi-trash"></i>
-                </button>
+                <div className="d-flex align-items-center">
+                  {/* 🚀 BOTÓN DE EDITAR A LA IZQUIERDA 🚀 */}
+                  <button 
+                    className="btn btn-sm text-info border-0 px-2 btn-action-cmt" 
+                    onClick={() => handleEditComment(c.id, c.contenido)}
+                    title="Editar comentario"
+                  >
+                    <i className="bi bi-pencil-square"></i>
+                  </button>
+
+                  <button 
+                    className="btn btn-sm text-danger border-0 px-2 btn-action-cmt" 
+                    onClick={() => handleDeleteComment(c.id)}
+                    title="Eliminar comentario"
+                  >
+                    <i className="bi bi-trash"></i>
+                  </button>
+                </div>
               )}
             </div>
          ))}
@@ -250,13 +281,13 @@ export default function PostPage() {
           transform: scale(1.15);
         }
 
-        /* --- ESTILOS PARA EL BOTÓN DE ELIMINAR COMENTARIO --- */
-        .btn-delete-cmt i {
+        /* --- ESTILOS PARA LOS BOTONES DE COMENTARIO (EDITAR/ELIMINAR) --- */
+        .btn-action-cmt i {
           display: inline-block; 
           transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
         }
         
-        .btn-delete-cmt:hover i {
+        .btn-action-cmt:hover i {
           transform: scale(1.4); 
         }
       `}</style>
