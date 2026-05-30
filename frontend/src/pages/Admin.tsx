@@ -24,31 +24,58 @@ export default function AdminPage() {
   const [filter,  setFilter]  = useState('PENDIENTE');
   const [userQ,   setUserQ]   = useState('');
   
-  // 🚀 NUEVO: Estados para los filtros de Auditoría
+  // 🚀 NUEVO: Estados para la paginación de publicaciones
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  
+  // Estados para los filtros de Auditoría
   const [auditQ, setAuditQ] = useState('');
   const [auditAction, setAuditAction] = useState('ALL');
   const [auditTable, setAuditTable] = useState('ALL');
 
   const [loading, setLoading] = useState(false);
 
-  // 🚀 NUEVO: Agregamos auditAction y auditTable a las dependencias para que recargue al cambiar de opción
+  // 🚀 ACTUALIZADO: Resetear paginación al cambiar de pestaña o filtro
   useEffect(() => {
-    if (tab==='posts') loadPosts();
-    if (tab==='users') loadUsers();
-    if (tab==='audit') loadAudit();
-    if (tab==='words') loadBanned();
+    if (tab === 'posts') {
+      setPage(1);
+      setHasMore(true);
+      setPosts([]); // Limpiamos la vista antes de cargar los nuevos
+      loadPosts(1, filter);
+    }
+    if (tab === 'users') loadUsers();
+    if (tab === 'audit') loadAudit();
+    if (tab === 'words') loadBanned();
   }, [tab, filter, auditAction, auditTable]);
 
-  async function loadPosts() {
+  // 🚀 ACTUALIZADO: Función adaptada para recibir página y concatenar resultados
+  async function loadPosts(pageNum = 1, currentFilter = filter) {
     setLoading(true);
     try { 
-      const response = await adminAPI.getPosts(filter); 
+      // adminAPI.getPosts debe aceptar ahora el filtro y el número de página
+      const response = await adminAPI.getPosts(currentFilter, pageNum); 
       const data = response.data || response;
-      setPosts(data.posts ?? []); 
+      const newPosts = data.posts ?? [];
+      
+      if (pageNum === 1) {
+        setPosts(newPosts);
+      } else {
+        setPosts(prev => [...prev, ...newPosts]);
+      }
+
+      // Si llegan menos de 9, significa que ya no hay más páginas en la base de datos
+      setHasMore(newPosts.length === 9); 
     }
     catch (err) { console.error(err); showToast('Error al cargar publicaciones.','error'); }
     finally { setLoading(false); }
   }
+
+  // 🚀 NUEVO: Función ejecutada por el botón "Cargar más"
+  const handleLoadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    loadPosts(nextPage, filter);
+  };
 
   async function loadUsers() {
     setLoading(true);
@@ -61,11 +88,9 @@ export default function AdminPage() {
     finally { setLoading(false); }
   }
 
-  // 🚀 NUEVO: Modificamos loadAudit para enviar los parámetros a Axios
   async function loadAudit() {
     setLoading(true);
     try { 
-      // Construimos el objeto de parámetros solo con lo que tenga valor
       const params = {
         q: auditQ || undefined,
         action: auditAction === 'ALL' ? undefined : auditAction,
@@ -93,7 +118,11 @@ export default function AdminPage() {
     try { 
       await adminAPI.moderatePost(id, action); 
       showToast('Acción realizada ✓'); 
-      loadPosts(); 
+      // Al moderar, recargamos desde la página 1 para mantener la coherencia
+      setPage(1);
+      setHasMore(true);
+      setPosts([]);
+      loadPosts(1, filter); 
     }
     catch { showToast('Error al moderar.','error'); }
   }
@@ -152,6 +181,23 @@ export default function AdminPage() {
                 {s}
               </button>
             ))}
+      
+          {posts.length > 0 && hasMore && (
+            <div className="text-center mt-4 mb-5">
+              <button 
+                className="btn btn-warning rounded-pill px-4 fw-bold shadow-sm" 
+                onClick={handleLoadMore}
+                disabled={loading}
+                style={{ minWidth: '200px' }}
+              >
+                {loading ? (
+                  <><span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Cargando...</>
+                ) : (
+                  'Cargar más'
+                )}
+              </button>
+            </div>
+          )}
           </div>
           {loading && <div className="hip-spin"><div className="spinner-border text-warning"/></div>}
           {!loading && posts.length===0 && (

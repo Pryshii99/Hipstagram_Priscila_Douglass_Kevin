@@ -12,7 +12,8 @@ const router = express.Router();
 router.get('/posts', requireAuth, requireRole('ADMIN'), async (req, res) => {
     const estado = req.query.estado || 'PENDIENTE';
     const page   = parseInt(req.query.page || '1');
-    const limit  = 10;
+    // 🚀 Límite ajustado a 9 para coincidir con la paginación del frontend
+    const limit  = 9; 
     const offset = (page - 1) * limit;
 
     try {
@@ -25,7 +26,20 @@ router.get('/posts', requireAuth, requireRole('ADMIN'), async (req, res) => {
             LIMIT $2 OFFSET $3`, 
             [estado, limit, offset]
         );
-        res.json({ posts: result.rows });
+        
+        // 🚀 Re-introducimos la lógica de las URLs absolutas para S3 que hicimos en users.js
+        const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
+        
+        const postsConUrlCompleta = result.rows.map(post => ({
+          ...post,
+          imagen_url: post.imagen_url 
+            ? (post.imagen_url.startsWith('http') ? post.imagen_url : `${baseUrl}${post.imagen_url}`) 
+            : null
+        }));
+
+        // Retornamos el array procesado
+        res.json({ posts: postsConUrlCompleta });
+        
     } catch (err) {
         console.error('Error Administrativo (GET Posts):', err);
         res.status(500).json({ error: 'Error al recuperar publicaciones para moderación.' });
