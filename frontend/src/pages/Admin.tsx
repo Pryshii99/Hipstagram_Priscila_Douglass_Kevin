@@ -24,7 +24,7 @@ export default function AdminPage() {
   const [filter,  setFilter]  = useState('PENDIENTE');
   const [userQ,   setUserQ]   = useState('');
   
-  // 🚀 NUEVO: Estados para la paginación de publicaciones
+  // Estados para la paginación de publicaciones
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   
@@ -33,26 +33,33 @@ export default function AdminPage() {
   const [auditAction, setAuditAction] = useState('ALL');
   const [auditTable, setAuditTable] = useState('ALL');
 
+  // 🚀 NUEVO: Estados para la paginación de Auditoría
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditHasMore, setAuditHasMore] = useState(true);
+
   const [loading, setLoading] = useState(false);
 
-  // 🚀 ACTUALIZADO: Resetear paginación al cambiar de pestaña o filtro
   useEffect(() => {
     if (tab === 'posts') {
       setPage(1);
       setHasMore(true);
-      setPosts([]); // Limpiamos la vista antes de cargar los nuevos
+      setPosts([]); 
       loadPosts(1, filter);
     }
     if (tab === 'users') loadUsers();
-    if (tab === 'audit') loadAudit();
+    if (tab === 'audit') {
+      // 🚀 Reiniciamos paginación al entrar a la tab de auditoría o cambiar filtros select
+      setAuditPage(1);
+      setAuditHasMore(true);
+      setAudit([]);
+      loadAudit(1);
+    }
     if (tab === 'words') loadBanned();
   }, [tab, filter, auditAction, auditTable]);
 
-  // 🚀 ACTUALIZADO: Función adaptada para recibir página y concatenar resultados
   async function loadPosts(pageNum = 1, currentFilter = filter) {
     setLoading(true);
     try { 
-      // adminAPI.getPosts debe aceptar ahora el filtro y el número de página
       const response = await adminAPI.getPosts(currentFilter, pageNum); 
       const data = response.data || response;
       const newPosts = data.posts ?? [];
@@ -63,14 +70,12 @@ export default function AdminPage() {
         setPosts(prev => [...prev, ...newPosts]);
       }
 
-      // Si llegan menos de 9, significa que ya no hay más páginas en la base de datos
       setHasMore(newPosts.length === 9); 
     }
     catch (err) { console.error(err); showToast('Error al cargar publicaciones.','error'); }
     finally { setLoading(false); }
   }
 
-  // 🚀 NUEVO: Función ejecutada por el botón "Cargar más"
   const handleLoadMore = () => {
     const nextPage = page + 1;
     setPage(nextPage);
@@ -88,22 +93,39 @@ export default function AdminPage() {
     finally { setLoading(false); }
   }
 
-  async function loadAudit() {
+  // 🚀 ACTUALIZADO: Función adaptada para paginar de 25 en 25
+  async function loadAudit(pageNum = 1) {
     setLoading(true);
     try { 
       const params = {
         q: auditQ || undefined,
         action: auditAction === 'ALL' ? undefined : auditAction,
-        table: auditTable === 'ALL' ? undefined : auditTable
+        table: auditTable === 'ALL' ? undefined : auditTable,
+        page: pageNum // Pasamos la página actual
       };
 
       const response = await adminAPI.getAudit(params); 
       const data = response.data || response;
-      setAudit(data.audit_logs || data.registros || data.auditoria || []); 
+      const newAudit = data.audit_logs || data.registros || data.auditoria || []; 
+
+      if (pageNum === 1) {
+        setAudit(newAudit);
+      } else {
+        setAudit(prev => [...prev, ...newAudit]);
+      }
+
+      setAuditHasMore(newAudit.length === 25); 
     }
     catch (err) { console.error(err); showToast('Error al cargar auditoría.','error');}
     finally { setLoading(false); }
   }
+
+  // 🚀 NUEVO: Función para el botón Cargar Más de Auditoría
+  const handleAuditLoadMore = () => {
+    const nextPage = auditPage + 1;
+    setAuditPage(nextPage);
+    loadAudit(nextPage);
+  };
 
   async function loadBanned() {
     try { 
@@ -118,7 +140,6 @@ export default function AdminPage() {
     try { 
       await adminAPI.moderatePost(id, action); 
       showToast('Acción realizada ✓'); 
-      // Al moderar, recargamos desde la página 1 para mantener la coherencia
       setPage(1);
       setHasMore(true);
       setPosts([]);
@@ -181,31 +202,17 @@ export default function AdminPage() {
                 {s}
               </button>
             ))}
-      
-          {posts.length > 0 && hasMore && (
-            <div className="text-center mt-4 mb-5">
-              <button 
-                className="btn btn-warning rounded-pill px-4 fw-bold shadow-sm" 
-                onClick={handleLoadMore}
-                disabled={loading}
-                style={{ minWidth: '200px' }}
-              >
-                {loading ? (
-                  <><span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Cargando...</>
-                ) : (
-                  'Cargar más'
-                )}
-              </button>
-            </div>
-          )}
           </div>
-          {loading && <div className="hip-spin"><div className="spinner-border text-warning"/></div>}
+
+          {loading && posts.length === 0 && <div className="hip-spin"><div className="spinner-border text-warning"/></div>}
+          
           {!loading && posts.length===0 && (
             <div className="text-center py-5 text-muted">
               <i className="bi bi-check-all" style={{ fontSize:'2.5rem' }}></i>
               <p className="mt-2" style={{ color: '#adb5bd' }}>No hay publicaciones con estado {filter}</p>
             </div>
           )}
+          
           {posts.map(p => (
             <div key={p.id} className="hip-card mb-3" style={{ backgroundColor: '#1a1a1a', borderColor: '#333' }}>
               <div className="hip-card-top">
@@ -237,6 +244,23 @@ export default function AdminPage() {
               </div>
             </div>
           ))}
+
+          {posts.length > 0 && hasMore && (
+            <div className="text-center mt-4 mb-5">
+              <button 
+                className="btn btn-warning rounded-pill px-4 fw-bold shadow-sm" 
+                onClick={handleLoadMore}
+                disabled={loading}
+                style={{ minWidth: '200px' }}
+              >
+                {loading ? (
+                  <><span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Cargando...</>
+                ) : (
+                  'Cargar más'
+                )}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -330,7 +354,6 @@ export default function AdminPage() {
       {/* ── AUDITORÍA ── */}
       {tab==='audit' && (
         <div>
-          {/* 🚀 NUEVO: BARRA DE BÚSQUEDA Y FILTROS */}
           <div className="hip-card p-3 mb-4" style={{ border: '1px solid var(--hip-border)', borderRadius: '15px', background: 'var(--hip-dark2)' }}>
             <div className="row g-3 align-items-end">
               
@@ -346,7 +369,15 @@ export default function AdminPage() {
                     placeholder="Usuario (ej. Sebastian) o IP..." 
                     value={auditQ} 
                     onChange={(e) => setAuditQ(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && loadAudit()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        // 🚀 Reinicia paginación si el admin usa la barra de búsqueda libre
+                        setAuditPage(1);
+                        setAuditHasMore(true);
+                        setAudit([]);
+                        loadAudit(1);
+                      }
+                    }}
                   />
                 </div>
               </div>
@@ -391,7 +422,7 @@ export default function AdminPage() {
           </div>
 
           <div className="table-responsive">
-            {loading && <div className="hip-spin"><div className="spinner-border text-warning"/></div>}
+            {loading && audit.length === 0 && <div className="hip-spin"><div className="spinner-border text-warning"/></div>}
             <table className="table table-dark table-hover align-middle" style={{ fontSize:'0.85rem' }}>
               <thead>
                 <tr><th className="text-warning">Fecha</th><th className="text-warning">Usuario</th><th className="text-warning">Acción</th><th className="text-warning">Tabla</th><th className="text-warning">IP</th></tr>
@@ -412,6 +443,24 @@ export default function AdminPage() {
               </tbody>
             </table>
           </div>
+
+          {/* 🚀 BOTÓN CARGAR MÁS PARA LA AUDITORÍA 🚀 */}
+          {audit.length > 0 && auditHasMore && (
+            <div className="text-center mt-4 mb-5">
+              <button 
+                className="btn btn-warning rounded-pill px-4 fw-bold shadow-sm" 
+                onClick={handleAuditLoadMore}
+                disabled={loading}
+                style={{ minWidth: '200px' }}
+              >
+                {loading ? (
+                  <><span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Cargando...</>
+                ) : (
+                  'Cargar más'
+                )}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

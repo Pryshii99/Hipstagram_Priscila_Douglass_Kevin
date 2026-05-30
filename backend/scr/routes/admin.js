@@ -311,7 +311,13 @@ router.get('/audit', requireAuth, requireRole('ADMIN'), async (req, res) => {
             sql += ` AND a.tabla_afectada = $${params.length}`;
         }
 
-        sql += ` ORDER BY a.fecha_creacion DESC LIMIT 50`;
+        // 🚀 NUEVO: Lógica de paginación para Auditoría (25 elementos)
+        const page = parseInt(req.query.page || '1');
+        const limit = 25;
+        const offset = (page - 1) * limit;
+
+        sql += ` ORDER BY a.fecha_creacion DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+        params.push(limit, offset);
         
         const result = await query(sql, params);
         
