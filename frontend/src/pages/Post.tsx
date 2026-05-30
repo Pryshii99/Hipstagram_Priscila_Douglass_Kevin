@@ -42,15 +42,46 @@ export default function PostPage() {
     fetch();
   }, [id]);
 
+
   async function handleVote(tipo: 0|1) {
-    if (!post || myVote===tipo) return;
+    if (!post) return;
     if (user?.id===post.usuario_id) { showToast('No puedes votar tu propia publicación.','info'); return; }
-    const pl=likes,pd=dislikes,pv=myVote;
-    if(myVote===null){tipo===1?setLikes(l=>l+1):setDislikes(d=>d+1);}
-    else{if(tipo===1){setLikes(l=>l+1);setDislikes(d=>Math.max(0,d-1));}else{setDislikes(d=>d+1);setLikes(l=>Math.max(0,l-1));}}
-    setMyVote(tipo);
-    try { await votesAPI.vote(post.id, tipo); }
-    catch { setLikes(pl);setDislikes(pd);setMyVote(pv);showToast('Error al votar.','error'); }
+    
+    const pl=likes, pd=dislikes, pv=myVote;
+    
+    // 1. Si hace clic en el botón que ya estaba activo, se quita el voto
+    if (myVote === tipo) {
+      if (tipo === 1) setLikes(l => Math.max(0, l - 1));
+      else setDislikes(d => Math.max(0, d - 1));
+      setMyVote(null);
+    } 
+    // 2. Si es un voto nuevo (no había votado nada previamente)
+    else if (myVote === null) {
+      if (tipo === 1) setLikes(l => l + 1);
+      else setDislikes(d => d + 1);
+      setMyVote(tipo);
+    } 
+    // 3. Si está cambiando su voto de Like a Dislike o viceversa
+    else {
+      if (tipo === 1) {
+        setLikes(l => l + 1);
+        setDislikes(d => Math.max(0, d - 1));
+      } else {
+        setDislikes(d => d + 1);
+        setLikes(l => Math.max(0, l - 1));
+      }
+      setMyVote(tipo);
+    }
+
+    try { 
+      // Se envía el voto al backend asumiendo que este procesa el "toggle" (borrado) al recibir el mismo tipo
+      await votesAPI.vote(post.id, tipo); 
+    }
+    catch { 
+      // Rollback visual si falla la API
+      setLikes(pl); setDislikes(pd); setMyVote(pv); 
+      showToast('Error al procesar el voto.','error'); 
+    }
   }
 
   async function sendComment(e: FormEvent) {
@@ -164,7 +195,7 @@ export default function PostPage() {
             </p>
           )}
           {comments.map(c => (
-            // 🚀 RENDEREADO DE CADA COMENTARIO CON BOTÓN DE ELIMINAR 🚀
+          
             <div key={c.id} className="hip-cmt d-flex justify-content-between align-items-center mb-2">
               <div className="d-flex gap-2">
                 <div className="hip-avatar sm" style={{ flexShrink:0 }}>{c.nombre_usuario?.[0]?.toUpperCase()}</div>

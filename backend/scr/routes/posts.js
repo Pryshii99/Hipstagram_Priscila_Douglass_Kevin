@@ -555,26 +555,40 @@ router.post('/votes/:postId', requireAuth, async (req, res) => {
     );
     const prev = vRes.rows[0];
 
+    // 🚀 LÓGICA REFINADA PARA PERMITIR DESMARCAR VOTOS 🚀
+    let finalVote = tipoVoto; 
+
     if (!prev) {
+      // Si no había votado, insertamos el nuevo voto
       await client.query('INSERT INTO votos (publicacion_id, usuario_id, tipo_voto) VALUES ($1,$2,$3)', [postId, userId, tipoVoto]);
       if (tipoVoto === 1) await client.query('UPDATE publicacion SET likes_count=likes_count+1 WHERE id=$1', [postId]);
       else                await client.query('UPDATE publicacion SET dislikes_count=dislikes_count+1 WHERE id=$1', [postId]);
-    } else if (prev.tipo_voto !== tipoVoto) {
+    
+    } else if (prev.tipo_voto === tipoVoto) {
+      // 🚀 CASO A: Presionó el mismo botón -> ELIMINAMOS EL VOTO (Toggle) 🚀
+      await client.query('DELETE FROM votos WHERE usuario_id=$1 AND publicacion_id=$2', [userId, postId]);
+      if (tipoVoto === 1) await client.query('UPDATE publicacion SET likes_count=GREATEST(likes_count-1,0) WHERE id=$1', [postId]);
+      else                await client.query('UPDATE publicacion SET dislikes_count=GREATEST(dislikes_count-1,0) WHERE id=$1', [postId]);
+      finalVote = null; // El usuario se queda sin voto activo
+    
+    } else {
+      // 🚀 CASO B: Cambió de opinión (De Like a Dislike, o viceversa) 🚀
       await client.query('UPDATE votos SET tipo_voto=$1 WHERE usuario_id=$2 AND publicacion_id=$3', [tipoVoto, userId, postId]);
       if (tipoVoto === 1) await client.query('UPDATE publicacion SET likes_count=likes_count+1, dislikes_count=GREATEST(dislikes_count-1,0) WHERE id=$1', [postId]);
       else                await client.query('UPDATE publicacion SET dislikes_count=dislikes_count+1, likes_count=GREATEST(likes_count-1,0) WHERE id=$1', [postId]);
     }
 
+    // Registramos en la tabla de auditoría la acción que realmente ocurrió
     await client.query(
       `INSERT INTO auditoria (usuario_id, accion, tabla_afectada, detalles, direccion_ip)
        VALUES ($1,'VOTO','votos',$2,$3)`,
-      [userId, JSON.stringify({ post_id: postId, tipo: tipoVoto }), ip]
+      [userId, JSON.stringify({ post_id: postId, accion: finalVote === null ? 'voto_removido' : 'voto_registrado', tipo: finalVote }), ip]
     );
 
     await client.query('COMMIT');
 
     const updated = await query('SELECT likes_count, dislikes_count FROM publicacion WHERE id=$1', [postId]);
-    return res.json({ ...updated.rows[0], mi_voto: tipoVoto });
+    return res.json({ ...updated.rows[0], mi_voto: finalVote });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
