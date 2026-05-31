@@ -69,7 +69,6 @@ export const commentsAPI = {
 export const searchAPI = {
   byHashtag: (q: string, page = 1) => api.get(`/posts/search/hashtag?q=${encodeURIComponent(q)}&page=${page}`),
   freeText:  (q: string, page = 1) => api.get(`/posts/search?q=${encodeURIComponent(q)}&page=${page}`),
-  // 🚀 NUEVA LÍNEA: Endpoint para buscar usuarios
   byUser:    (username: string, page = 1) => api.get(`/posts/search/user?q=${encodeURIComponent(username)}&page=${page}`)
 };
 
