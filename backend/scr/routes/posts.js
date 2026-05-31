@@ -469,6 +469,62 @@ router.delete('/comments/:id', requireAuth, async (req, res) => {
   }
 });
 
+// 🚀 ── PUT /comments/:id (Editar comentario) ── 🚀
+router.put('/comments/:id', requireAuth, async (req, res) => {
+  const commentId = parseInt(req.params.id);
+  const userId = req.user.sub;
+  const contenido = (req.body.contenido || '').trim().substring(0, 500);
+  const ip = req.ip;
+
+  if (!contenido) return res.status(400).json({ error: 'El comentario no puede estar vacío.' });
+
+  const client = await require('../BD/pool').pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Verificar existencia y que el usuario sea el autor del comentario
+    const cRes = await client.query(
+      'SELECT usuario_id, publicacion_id FROM comentarios WHERE id=$1', 
+      [commentId]
+    );
+
+    if (!cRes.rows[0]) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Comentario no encontrado.' });
+    }
+
+    if (cRes.rows[0].usuario_id !== userId) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'No tienes permiso para editar este comentario.' });
+    }
+
+    const postId = cRes.rows[0].publicacion_id;
+
+    // Actualizar el comentario en la base de datos
+    const updateRes = await client.query(
+      'UPDATE comentarios SET contenido=$1 WHERE id=$2 RETURNING *',
+      [contenido, commentId]
+    );
+
+    // Auditoría
+    await client.query(
+      `INSERT INTO auditoria (usuario_id, accion, tabla_afectada, detalles, direccion_ip)
+       VALUES ($1, 'COMENTARIO_EDITADO', 'comentarios', $2, $3)`,
+      [userId, JSON.stringify({ comment_id: commentId, post_id: postId }), ip]
+    );
+
+    await client.query('COMMIT');
+    return res.json({ message: 'Comentario editado exitosamente.', comentario: updateRes.rows[0] });
+
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error al editar comentario:', err);
+    return res.status(500).json({ error: 'Error interno al intentar editar el comentario.' });
+  } finally {
+    client.release();
+  }
+});
+
 // ── DELETE /posts/:id (Validación de Integridad Referencial Nativa) ──
 router.delete('/:id', requireAuth, async (req, res) => {
     const postId = parseInt(req.params.id);
@@ -555,26 +611,40 @@ router.post('/votes/:postId', requireAuth, async (req, res) => {
     );
     const prev = vRes.rows[0];
 
+    // 🚀 LÓGICA REFINADA PARA PERMITIR DESMARCAR VOTOS 🚀
+    let finalVote = tipoVoto; 
+
     if (!prev) {
+      // Si no había votado, insertamos el nuevo voto
       await client.query('INSERT INTO votos (publicacion_id, usuario_id, tipo_voto) VALUES ($1,$2,$3)', [postId, userId, tipoVoto]);
       if (tipoVoto === 1) await client.query('UPDATE publicacion SET likes_count=likes_count+1 WHERE id=$1', [postId]);
       else                await client.query('UPDATE publicacion SET dislikes_count=dislikes_count+1 WHERE id=$1', [postId]);
-    } else if (prev.tipo_voto !== tipoVoto) {
+    
+    } else if (prev.tipo_voto === tipoVoto) {
+      // 🚀 CASO A: Presionó el mismo botón -> ELIMINAMOS EL VOTO (Toggle) 🚀
+      await client.query('DELETE FROM votos WHERE usuario_id=$1 AND publicacion_id=$2', [userId, postId]);
+      if (tipoVoto === 1) await client.query('UPDATE publicacion SET likes_count=GREATEST(likes_count-1,0) WHERE id=$1', [postId]);
+      else                await client.query('UPDATE publicacion SET dislikes_count=GREATEST(dislikes_count-1,0) WHERE id=$1', [postId]);
+      finalVote = null; // El usuario se queda sin voto activo
+    
+    } else {
+      // 🚀 CASO B: Cambió de opinión (De Like a Dislike, o viceversa) 🚀
       await client.query('UPDATE votos SET tipo_voto=$1 WHERE usuario_id=$2 AND publicacion_id=$3', [tipoVoto, userId, postId]);
       if (tipoVoto === 1) await client.query('UPDATE publicacion SET likes_count=likes_count+1, dislikes_count=GREATEST(dislikes_count-1,0) WHERE id=$1', [postId]);
       else                await client.query('UPDATE publicacion SET dislikes_count=dislikes_count+1, likes_count=GREATEST(likes_count-1,0) WHERE id=$1', [postId]);
     }
 
+    // Registramos en la tabla de auditoría la acción que realmente ocurrió
     await client.query(
       `INSERT INTO auditoria (usuario_id, accion, tabla_afectada, detalles, direccion_ip)
        VALUES ($1,'VOTO','votos',$2,$3)`,
-      [userId, JSON.stringify({ post_id: postId, tipo: tipoVoto }), ip]
+      [userId, JSON.stringify({ post_id: postId, accion: finalVote === null ? 'voto_removido' : 'voto_registrado', tipo: finalVote }), ip]
     );
 
     await client.query('COMMIT');
 
     const updated = await query('SELECT likes_count, dislikes_count FROM publicacion WHERE id=$1', [postId]);
-    return res.json({ ...updated.rows[0], mi_voto: tipoVoto });
+    return res.json({ ...updated.rows[0], mi_voto: finalVote });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);

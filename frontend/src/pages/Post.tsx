@@ -25,6 +25,8 @@ export default function PostPage() {
   const [dislikes, setDislikes] = useState(0);
   const [loading,  setLoading]  = useState(true);
   const [sending,  setSending]  = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editDraft, setEditDraft] = useState('');
 
   useEffect(() => {
     async function fetch() {
@@ -42,15 +44,46 @@ export default function PostPage() {
     fetch();
   }, [id]);
 
+
   async function handleVote(tipo: 0|1) {
-    if (!post || myVote===tipo) return;
+    if (!post) return;
     if (user?.id===post.usuario_id) { showToast('No puedes votar tu propia publicación.','info'); return; }
-    const pl=likes,pd=dislikes,pv=myVote;
-    if(myVote===null){tipo===1?setLikes(l=>l+1):setDislikes(d=>d+1);}
-    else{if(tipo===1){setLikes(l=>l+1);setDislikes(d=>Math.max(0,d-1));}else{setDislikes(d=>d+1);setLikes(l=>Math.max(0,l-1));}}
-    setMyVote(tipo);
-    try { await votesAPI.vote(post.id, tipo); }
-    catch { setLikes(pl);setDislikes(pd);setMyVote(pv);showToast('Error al votar.','error'); }
+    
+    const pl=likes, pd=dislikes, pv=myVote;
+    
+    // 1. Si hace clic en el botón que ya estaba activo, se quita el voto
+    if (myVote === tipo) {
+      if (tipo === 1) setLikes(l => Math.max(0, l - 1));
+      else setDislikes(d => Math.max(0, d - 1));
+      setMyVote(null);
+    } 
+    // 2. Si es un voto nuevo (no había votado nada previamente)
+    else if (myVote === null) {
+      if (tipo === 1) setLikes(l => l + 1);
+      else setDislikes(d => d + 1);
+      setMyVote(tipo);
+    } 
+    // 3. Si está cambiando su voto de Like a Dislike o viceversa
+    else {
+      if (tipo === 1) {
+        setLikes(l => l + 1);
+        setDislikes(d => Math.max(0, d - 1));
+      } else {
+        setDislikes(d => d + 1);
+        setLikes(l => Math.max(0, l - 1));
+      }
+      setMyVote(tipo);
+    }
+
+    try { 
+      // Se envía el voto al backend asumiendo que este procesa el "toggle" (borrado) al recibir el mismo tipo
+      await votesAPI.vote(post.id, tipo); 
+    }
+    catch { 
+      // Rollback visual si falla la API
+      setLikes(pl); setDislikes(pd); setMyVote(pv); 
+      showToast('Error al procesar el voto.','error'); 
+    }
   }
 
   async function sendComment(e: FormEvent) {
@@ -68,7 +101,37 @@ export default function PostPage() {
     finally { setSending(false); }
   }
 
-  // 🚀 NUEVA FUNCIÓN PARA ELIMINAR EL COMENTARIO 🚀
+  //  INICIA EL MODO DE EDICIÓN EN LÍNEA 
+  function startEditing(commentId: number, currentText: string) {
+    setEditingCommentId(commentId);
+    setEditDraft(currentText);
+  }
+
+  //  CANCELA LA EDICIÓN 
+  function cancelEditing() {
+    setEditingCommentId(null);
+    setEditDraft('');
+  }
+
+  //  GUARDA EL COMENTARIO EDITADO (Llamando a la API) 
+  async function saveEditedComment(commentId: number) {
+    if (!editDraft.trim()) {
+      showToast('El comentario no puede estar vacío.', 'info');
+      return;
+    }
+
+    try {
+      await commentsAPI.update(commentId, editDraft.trim());
+      setComments(prev => prev.map(c => c.id === commentId ? { ...c, contenido: editDraft.trim() } : c));
+      showToast('Comentario actualizado ✓');
+      setEditingCommentId(null);
+      setEditDraft('');
+    } catch (error) {
+      showToast('Error al guardar los cambios.', 'error');
+    }
+  }
+
+  //  FUNCIÓN PARA ELIMINAR EL COMENTARIO 
   async function handleDeleteComment(commentId: number) {
     if (!window.confirm('¿Seguro que deseas eliminar tu comentario?')) return;
     try {
@@ -118,7 +181,7 @@ export default function PostPage() {
           {post.descripcion && <p className="hip-desc mt-1 mb-0"><span className="fw-semibold">@{post.nombre_usuario}</span> {post.descripcion}</p>}
         </div>
 
-        {/* 🚀 NUEVO DISEÑO TIPO INSTAGRAM PARA LAS INTERACCIONES 🚀 */}
+        {/*  NUEVO DISEÑO TIPO INSTAGRAM PARA LAS INTERACCIONES 🚀 */}
         <div className="d-flex align-items-center gap-4 px-3 pb-3 mt-2">
           {/* Botón Like */}
           <button className={`btn-ig-action ${myVote===1?'on':''}`} onClick={() => handleVote(1)}>
@@ -164,33 +227,71 @@ export default function PostPage() {
             </p>
           )}
           {comments.map(c => (
-            // 🚀 RENDEREADO DE CADA COMENTARIO CON BOTÓN DE ELIMINAR 🚀
-            <div key={c.id} className="hip-cmt d-flex justify-content-between align-items-center mb-2">
-              <div className="d-flex gap-2">
+            
+            <div key={c.id} className="hip-cmt d-flex justify-content-between align-items-start mb-3">
+              <div className="d-flex gap-2 flex-grow-1">
                 <div className="hip-avatar sm" style={{ flexShrink:0 }}>{c.nombre_usuario?.[0]?.toUpperCase()}</div>
-                <div>
+                
+                <div className="w-100">
                   <span className="hip-cmt-user me-2">@{c.nombre_usuario}</span>
                   <span className="hip-cmt-time">{timeAgo(c.fecha_creacion)}</span>
-                  <p className="hip-cmt-text mb-0">{c.contenido}</p>
+                  
+                  {/*  LÓGICA CONDICIONAL: Mostrar texto o input de edición en línea 🚀 */}
+                  {editingCommentId === c.id ? (
+                    <div className="mt-1 pe-3">
+                      <input 
+                        type="text" 
+                        className="form-control bg-dark text-white border-warning mb-2" 
+                        value={editDraft} 
+                        onChange={(e) => setEditDraft(e.target.value)}
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveEditedComment(c.id);
+                          if (e.key === 'Escape') cancelEditing();
+                        }}
+                      />
+                      <div className="d-flex gap-2">
+                        <button className="btn btn-sm btn-warning fw-bold rounded-pill px-3" onClick={() => saveEditedComment(c.id)}>
+                          Guardar
+                        </button>
+                        <button className="btn btn-sm btn-outline-secondary rounded-pill px-3" onClick={cancelEditing}>
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="hip-cmt-text mb-0 mt-1">{c.contenido}</p>
+                  )}
                 </div>
               </div>
 
-              {/* Mostrar botón solo si el usuario actual es el dueño del comentario */}
-              {user?.nombre_usuario === c.nombre_usuario && (
-                <button 
-                  className="btn btn-sm text-danger border-0 px-2 btn-delete-cmt" 
-                  onClick={() => handleDeleteComment(c.id)}
-                  title="Eliminar comentario"
-                >
-                  <i className="bi bi-trash"></i>
-                </button>
+              {/* Mostrar botones solo si el usuario actual es el dueño del comentario y NO está editando */}
+              {user?.nombre_usuario === c.nombre_usuario && editingCommentId !== c.id && (
+                <div className="d-flex align-items-center mt-1">
+                  {/*  BOTÓN DE EDITAR A LA IZQUIERDA  */}
+                  <button 
+                    className="btn btn-sm text-info border-0 px-2 btn-action-cmt" 
+                    onClick={() => startEditing(c.id, c.contenido)}
+                    title="Editar comentario"
+                  >
+                    <i className="bi bi-pencil-square"></i>
+                  </button>
+
+                  <button 
+                    className="btn btn-sm text-danger border-0 px-2 btn-action-cmt" 
+                    onClick={() => handleDeleteComment(c.id)}
+                    title="Eliminar comentario"
+                  >
+                    <i className="bi bi-trash"></i>
+                  </button>
+                </div>
               )}
             </div>
          ))}
         </div>
       </div>
       
-      {/* 🚀 SECCIÓN DE ESTILOS CSS 🚀 */}
+      {/* SECCIÓN DE ESTILOS CSS */}
       <style>{`
         /* --- ESTILOS PARA INTERACCIONES TIPO INSTAGRAM --- */
         .btn-ig-action {
@@ -219,13 +320,13 @@ export default function PostPage() {
           transform: scale(1.15);
         }
 
-        /* --- ESTILOS PARA EL BOTÓN DE ELIMINAR COMENTARIO --- */
-        .btn-delete-cmt i {
+        /* --- ESTILOS PARA LOS BOTONES DE COMENTARIO (EDITAR/ELIMINAR) --- */
+        .btn-action-cmt i {
           display: inline-block; 
           transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
         }
         
-        .btn-delete-cmt:hover i {
+        .btn-action-cmt:hover i {
           transform: scale(1.4); 
         }
       `}</style>
