@@ -248,7 +248,7 @@ export default function AdminPage() {
           {posts.length > 0 && hasMore && (
             <div className="text-center mt-4 mb-5">
               <button 
-                className="btn btn-warning rounded-pill px-4 fw-bold shadow-sm" 
+             className="btn btn-warning rounded-pill px-4 fw-bold btn-glow-warning"
                 onClick={handleLoadMore}
                 disabled={loading}
                 style={{ minWidth: '200px' }}
@@ -366,7 +366,7 @@ export default function AdminPage() {
                   <input 
                     type="text" 
                     className="form-control" 
-                    placeholder="Usuario (ej. Sebastian) o IP..." 
+                    placeholder="Usuario (ej. Anthony) " 
                     value={auditQ} 
                     onChange={(e) => setAuditQ(e.target.value)}
                     onKeyDown={(e) => {
@@ -448,7 +448,7 @@ export default function AdminPage() {
           {audit.length > 0 && auditHasMore && (
             <div className="text-center mt-4 mb-5">
               <button 
-                className="btn btn-warning rounded-pill px-4 fw-bold shadow-sm" 
+              className="btn btn-warning rounded-pill px-4 fw-bold btn-glow-warning"
                 onClick={handleAuditLoadMore}
                 disabled={loading}
                 style={{ minWidth: '200px' }}
@@ -503,6 +503,28 @@ export default function AdminPage() {
           border-color: #ffc107;
           box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25);
         }
+          .btn-glow-warning {
+  transition: all 0.3s ease-in-out;
+  box-shadow:
+    0 0 12px rgba(255, 193, 7, 0.45),
+    0 0 24px rgba(255, 193, 7, 0.20);
+}
+
+.btn-glow-warning:hover {
+  box-shadow:
+    0 0 18px rgba(255, 193, 7, 0.75),
+    0 0 32px rgba(255, 193, 7, 0.45);
+  background-color: #ffca2c;
+  transform: translateY(-1px);
+}
+
+.btn-glow-warning:active {
+  transform: translateY(0);
+}
+
+.btn-glow-warning:disabled {
+  opacity: 0.85;
+}
       `}</style>
     </div>
   );

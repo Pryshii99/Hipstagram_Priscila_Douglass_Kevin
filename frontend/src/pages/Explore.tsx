@@ -52,24 +52,26 @@ export default function ExplorePage() {
     <div className="hip-explore-container">
       {/* Encabezado discreto estilo Instagram con el Combobox integrado */}
       <div className="px-2 py-3 d-flex justify-content-between align-items-center">
-        <h6 className="fw-bold mb-0 text-uppercase" style={{ letterSpacing: '1px', fontSize: '0.8rem', color: '#8e8e8e' }}>
+        <h6 className="fw-bold mb-0 text-uppercase" style={{ letterSpacing: '1px', fontSize: '0.8rem', color: '#ffc107' }}>
           <i className="bi bi-grid-3x3 me-2"></i>Publicaciones Destacadas
         </h6>
         
-        {/* NUEVO: Combobox de ordenamiento estilizado */}
-        <select 
-          value={sortBy} 
-          onChange={(e) => setSortBy(e.target.value)}
-          style={{ 
-            padding: '4px 10px', 
-            borderRadius: '6px', 
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            background: 'rgba(0, 0, 0, 0.6)',
-            color: 'white',
-            outline: 'none',
-            fontSize: '0.8rem',
-            cursor: 'pointer'
-          }}
+        {/*  Combobox de ordenamiento estilizado */}
+       <select
+         className="hip-select-yellow"
+  value={sortBy}
+  onChange={(e) => setSortBy(e.target.value)}
+  style={{
+    padding: '4px 10px',
+    borderRadius: '6px',
+    border: '1px solid #ffc107',
+    background: '#ffc107',
+    color: '#000',
+    outline: 'none',
+    fontSize: '0.8rem',
+    cursor: 'pointer',
+    fontWeight: '600'
+  }}
         >
           <option value="likes">Más Populares</option>
           <option value="recent">Más Recientes</option>
@@ -111,8 +113,8 @@ export default function ExplorePage() {
 
       {hasMore && !loading && (
         <div className="text-center my-4">
-          {/* 🚀 BOTÓN CON LA NUEVA CLASE GLOW 🚀 */}
-          {/* NUEVO: El botón ahora pasa el sortBy actual */}
+       
+          {/*  El botón ahora pasa el sortBy actual */}
           <button className="btn btn-warning rounded-pill px-4 fw-bold btn-glow-warning" onClick={() => load(page + 1, sortBy)}>
             Cargar más
           </button>
@@ -121,6 +123,32 @@ export default function ExplorePage() {
 
       {/* BLOQUE DE ESTILOS CSS PARA EL BOTÓN */}
       <style>{`
+.hip-select-yellow {
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid #ffc107;
+  background: #ffc107;
+  color: #000;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.hip-select-yellow:hover {
+  box-shadow:
+    0 0 12px rgba(255, 193, 7, 0.6),
+    0 0 20px rgba(255, 193, 7, 0.3);
+}
+
+.hip-select-yellow:focus {
+  box-shadow:
+    0 0 15px rgba(255, 193, 7, 0.8),
+    0 0 25px rgba(255, 193, 7, 0.4);
+}
+
+
         .btn-glow-warning {
           transition: all 0.3s ease-in-out;
         }

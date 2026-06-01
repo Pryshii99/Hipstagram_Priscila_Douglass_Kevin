@@ -24,7 +24,7 @@ export default function FeedPage() { // Asumí el nombre FeedPage
   async function load(p: number) {
     setLoading(true);
     try {
-      const { data } = await postsAPI.getExplore(p); // ⚠️ Ojo, si es tu feed, deberías usar tu endpoint de feed, ej: postsAPI.getFeed(p)
+      const { data } = await postsAPI.getExplore(p); 
       const arr: Publicacion[] = data.posts ?? data ?? [];
       p === 1 ? setPosts(arr) : setPosts(prev => [...prev, ...arr]);
       setHasMore(arr.length === 10); // Asumiendo que 10 es el límite por página
@@ -44,7 +44,9 @@ export default function FeedPage() { // Asumí el nombre FeedPage
         <h5 className="fw-bold mb-0">
           <i className="bi bi-stars me-2 text-warning"></i>Descubrir Destacados
         </h5>
-        <small className="text-secondary">Explora lo más popular de la comunidad</small>
+        <small style={{ color: '#ffc107' }}>
+  Explora lo más popular de la comunidad
+</small>
       </div>
 
       {loading && posts.length === 0 && (

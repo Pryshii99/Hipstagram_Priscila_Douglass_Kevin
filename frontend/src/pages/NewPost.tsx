@@ -66,7 +66,7 @@ export default function NewPostPage() {
 
   return (
     <div className="hip-feed">
-      <h5 className="fw-bold mb-3" style={{ color:'var(--hip-dark)' }}>
+      <h5 className="fw-bold mb-3" style={{ color: '#ffc107',}}>
         <i className="bi bi-plus-square-fill me-2"></i>Nueva publicación
       </h5>
       <div className="hip-card p-3">
