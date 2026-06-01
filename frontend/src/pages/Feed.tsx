@@ -128,7 +128,6 @@ export default function FeedPage() { // Asumí el nombre FeedPage
 
       {hasMore && !loading && (
         <div className="text-center my-5">
-          {/* 🚀 BOTÓN CON LA CLASE GLOW 🚀 */}
           <button className="btn btn-warning rounded-pill px-5 fw-bold btn-glow-warning" onClick={() => load(page + 1)}>
             Cargar más
           </button>
@@ -159,11 +158,29 @@ export default function FeedPage() { // Asumí el nombre FeedPage
           background-color: #000;
           transition: all 0.3s ease;
           cursor: pointer;
+          overflow: hidden; /* Evita que la imagen desborde bordes redondeados si los hubiera */
         }
         
         .custom-hover-card:hover {
           border-color: #ffc107 !important;
           box-shadow: 0 0 12px rgba(255, 193, 7, 0.2);
+        }
+
+  
+        .insta-card-img-container {
+          width: 100%;
+          background-color: #000; /* Forzamos el fondo negro detrás de la imagen */
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .insta-card-img-container img {
+          width: 100%;
+          height: auto; /* Mantiene la proporción sin deformar */
+          max-height: 600px; /* Evita que imágenes muy verticales ocupen toda la pantalla */
+          object-fit: contain; /* Asegura que la imagen completa sea visible */
+          display: block; /* Quita el espacio extra que los navegadores añaden bajo las imágenes inline */
         }
 
         /* --- ESTILOS PARA INTERACCIONES TIPO INSTAGRAM --- */
@@ -196,7 +213,7 @@ export default function FeedPage() { // Asumí el nombre FeedPage
           color: #fff !important;
         }
 
-        /* 🚀 EFECTO GLOW PARA EL BOTÓN (Faltaba esto) 🚀 */
+        /* EFECTO GLOW PARA EL BOTÓN  */
         .btn-glow-warning {
           transition: all 0.3s ease-in-out;
         }

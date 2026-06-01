@@ -371,7 +371,6 @@ export default function AdminPage() {
                     onChange={(e) => setAuditQ(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
-                        // 🚀 Reinicia paginación si el admin usa la barra de búsqueda libre
                         setAuditPage(1);
                         setAuditHasMore(true);
                         setAudit([]);
@@ -421,20 +420,28 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <div className="table-responsive">
+          <div className="table-responsive" style={{ border: 'none' }}>
             {loading && audit.length === 0 && <div className="hip-spin"><div className="spinner-border text-warning"/></div>}
-            <table className="table table-dark table-hover align-middle" style={{ fontSize:'0.85rem' }}>
+            {/* 🚀 APLICACIÓN REGLA DE ORO: CLASE mobile-audit-table 🚀 */}
+            <table className="table table-dark table-hover align-middle mobile-audit-table" style={{ fontSize:'0.85rem' }}>
               <thead>
-                <tr><th className="text-warning">Fecha</th><th className="text-warning">Usuario</th><th className="text-warning">Acción</th><th className="text-warning">Tabla</th><th className="text-warning">IP</th></tr>
+                <tr>
+                  <th className="text-warning">Fecha</th>
+                  <th className="text-warning">Usuario</th>
+                  <th className="text-warning">Acción</th>
+                  <th className="text-warning">Tabla</th>
+                  <th className="text-warning">IP</th>
+                </tr>
               </thead>
               <tbody>
                 {audit.map(a => (
                   <tr key={a.id}>
-                    <td><small className="text-light">{timeStr(a.fecha_creacion)}</small></td>
-                    <td>{a.nombre_usuario ? <span className="fw-semibold">@{a.nombre_usuario}</span> : <span className="text-muted">[sistema]</span>}</td>
-                    <td><span className="badge bg-secondary border border-warning text-warning">{a.accion}</span></td>
-                    <td><small className="text-light">{a.tabla_afectada ?? '—'}</small></td>
-                    <td><small className="text-light">{a.direccion_ip ?? '—'}</small></td>
+                    {/* ATRIBUTOS data-label PARA TARJETAS MÓVILES  */}
+                    <td data-label="Fecha"><small className="text-light">{timeStr(a.fecha_creacion)}</small></td>
+                    <td data-label="Usuario">{a.nombre_usuario ? <span className="fw-semibold">@{a.nombre_usuario}</span> : <span className="text-muted">[sistema]</span>}</td>
+                    <td data-label="Acción"><span className="badge bg-secondary border border-warning text-warning">{a.accion}</span></td>
+                    <td data-label="Tabla"><small className="text-light">{a.tabla_afectada ?? '—'}</small></td>
+                    <td data-label="IP"><small className="text-light">{a.direccion_ip ?? '—'}</small></td>
                   </tr>
                 ))}
                 {!loading && audit.length===0 && (
@@ -444,7 +451,7 @@ export default function AdminPage() {
             </table>
           </div>
 
-          {/* 🚀 BOTÓN CARGAR MÁS PARA LA AUDITORÍA 🚀 */}
+          {/* BOTÓN CARGAR MÁS PARA LA AUDITORÍA  */}
           {audit.length > 0 && auditHasMore && (
             <div className="text-center mt-4 mb-5">
               <button 
@@ -525,6 +532,48 @@ export default function AdminPage() {
 .btn-glow-warning:disabled {
   opacity: 0.85;
 }
+  /* 🚀 REGLA DE ORO: TABLA RESPONSIVA PARA AUDITORÍA 🚀 */
+        @media (max-width: 768px) {
+          .mobile-audit-table thead {
+            display: none; /* Ocultamos los encabezados tradicionales en móvil */
+          }
+          
+          .mobile-audit-table tbody tr {
+            display: flex;
+            flex-direction: column;
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+          }
+
+          .mobile-audit-table tbody td {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #2a2a2a;
+            padding: 0.75rem 0.5rem;
+            text-align: right;
+          }
+
+          .mobile-audit-table tbody td:last-child {
+            border-bottom: none;
+          }
+
+          /* Usamos el atributo data-label para crear los títulos a la izquierda */
+          .mobile-audit-table tbody td::before {
+            content: attr(data-label);
+            font-weight: bold;
+            color: #888;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+            text-align: left;
+            margin-right: 1rem;
+          }
+        }
       `}</style>
     </div>
   );

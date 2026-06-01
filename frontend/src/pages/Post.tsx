@@ -165,15 +165,20 @@ export default function PostPage() {
             </div>
           </div>
         </div>
- {post.imagen_url
-  ? <img 
-      src={post.imagen_url} 
-      alt={post.descripcion || 'Imagen de la publicación'} 
-      className="hip-card-img" 
-      style={{ cursor:'default' }}
-    />
-  : <div className="hip-card-img-ph"><i className="bi bi-image"/></div>
-}
+
+        {/* 🚀 APLICACIÓN DE LA REGLA DE ORO (Contenedor inyectado) 🚀 */}
+        <div className="hip-card-img-container">
+          {post.imagen_url
+            ? <img 
+                src={post.imagen_url} 
+                alt={post.descripcion || 'Imagen de la publicación'} 
+                className="hip-card-img" 
+                style={{ cursor:'default' }}
+              />
+            : <div className="hip-card-img-ph"><i className="bi bi-image"/></div>
+          }
+        </div>
+
         <div className="hip-card-body pb-2">
           {post.hashtags?.map(h => (
             <span key={h} className="hip-tag" onClick={() => navigate(`/search?q=${h}&mode=hashtag`)}>{h}</span>
@@ -181,7 +186,7 @@ export default function PostPage() {
           {post.descripcion && <p className="hip-desc mt-1 mb-0"><span className="fw-semibold">@{post.nombre_usuario}</span> {post.descripcion}</p>}
         </div>
 
-        {/*  NUEVO DISEÑO TIPO INSTAGRAM PARA LAS INTERACCIONES 🚀 */}
+        {/* NUEVO DISEÑO TIPO INSTAGRAM PARA LAS INTERACCIONES 🚀 */}
         <div className="d-flex align-items-center gap-4 px-3 pb-3 mt-2">
           {/* Botón Like */}
           <button className={`btn-ig-action ${myVote===1?'on':''}`} onClick={() => handleVote(1)}>
@@ -236,7 +241,7 @@ export default function PostPage() {
                   <span className="hip-cmt-user me-2">@{c.nombre_usuario}</span>
                   <span className="hip-cmt-time">{timeAgo(c.fecha_creacion)}</span>
                   
-                  {/*  LÓGICA CONDICIONAL: Mostrar texto o input de edición en línea 🚀 */}
+                  {/* LÓGICA CONDICIONAL: Mostrar texto o input de edición en línea 🚀 */}
                   {editingCommentId === c.id ? (
                     <div className="mt-1 pe-3">
                       <input 
@@ -268,7 +273,7 @@ export default function PostPage() {
               {/* Mostrar botones solo si el usuario actual es el dueño del comentario y NO está editando */}
               {user?.nombre_usuario === c.nombre_usuario && editingCommentId !== c.id && (
                 <div className="d-flex align-items-center mt-1">
-                  {/*  BOTÓN DE EDITAR A LA IZQUIERDA  */}
+                  {/* BOTÓN DE EDITAR A LA IZQUIERDA  */}
                   <button 
                     className="btn btn-sm text-info border-0 px-2 btn-action-cmt" 
                     onClick={() => startEditing(c.id, c.contenido)}
@@ -287,12 +292,29 @@ export default function PostPage() {
                 </div>
               )}
             </div>
-         ))}
+          ))}
         </div>
       </div>
       
       {/* SECCIÓN DE ESTILOS CSS */}
       <style>{`
+        /* 🚀 FIX DE LA FRANJA GRIS (Regla de Oro) 🚀 */
+        .hip-card-img-container {
+          width: 100%;
+          background-color: #000; /* Obliga a que los espacios vacíos sean negros */
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .hip-card-img {
+          width: 100%;
+          height: auto;
+          max-height: 600px;
+          object-fit: contain; /* Ajusta la imagen sin deformarla */
+          display: block; /* Elimina el margen inferior invisible */
+        }
+
         /* --- ESTILOS PARA INTERACCIONES TIPO INSTAGRAM --- */
         .btn-ig-action {
           background: transparent;
