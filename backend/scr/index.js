@@ -20,7 +20,8 @@ app.use(cors({
     'http://localhost:3001',
     'http://localhost',
     'https://localhost',
-    'capacitor://localhost'
+    'capacitor://localhost',
+    'https://hipstagram-web-315020079867.us-central1.run.app' 
   ],
   credentials: true, 
 }));

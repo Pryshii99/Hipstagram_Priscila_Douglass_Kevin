@@ -166,7 +166,7 @@ export default function PostPage() {
           </div>
         </div>
 
-        {/* 🚀 APLICACIÓN DE LA REGLA DE ORO (Contenedor inyectado) 🚀 */}
+    
         <div className="hip-card-img-container">
           {post.imagen_url
             ? <img 
@@ -296,9 +296,8 @@ export default function PostPage() {
         </div>
       </div>
       
-      {/* SECCIÓN DE ESTILOS CSS */}
+    
       <style>{`
-        /* 🚀 FIX DE LA FRANJA GRIS (Regla de Oro) 🚀 */
         .hip-card-img-container {
           width: 100%;
           background-color: #000; /* Obliga a que los espacios vacíos sean negros */
