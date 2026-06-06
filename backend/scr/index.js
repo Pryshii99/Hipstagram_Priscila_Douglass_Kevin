@@ -11,6 +11,7 @@ const userRoutes  = require('./routes/users');
 const adminRoutes = require('./routes/admin');
 
 const app  = express();
+process.env.PORT
 const PORT = process.env.PORT || 3000;
 
 
