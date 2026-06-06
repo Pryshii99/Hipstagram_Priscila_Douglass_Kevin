@@ -23,7 +23,8 @@ app.use(cors({
     'https://localhost',
     'capacitor://localhost',
     'https://hipstagram-web-315020079867.us-central1.run.app',
-    'http://hipstagram-alb-377064702.us-east-2.elb.amazonaws.com' // <-- Nuevo origen agregado
+    'http://hipstagram-alb-377064702.us-east-2.elb.amazonaws.com', 
+    'http://3.133.139.202'
   ],
   credentials: true, 
 }));
