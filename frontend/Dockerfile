@@ -10,7 +10,7 @@ RUN npm run build
 FROM nginx:alpine
 # Copiamos la build compilada a la carpeta pública de Nginx
 COPY --from=build /app/build /usr/share/nginx/html
-# Configuramos Nginx para escuchar en el puerto 8080 que exige Google Cloud Run
-RUN sed -i 's/listen  *80;/listen 8080;/g' /etc/nginx/conf.d/default.conf
+# Insertamos nuestra propia configuración de Nginx para soportar React Router
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 8080
 CMD ["nginx", "-g", "daemon off;"]

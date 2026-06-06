@@ -136,6 +136,11 @@ export default function FeedPage() { // Asumí el nombre FeedPage
 
       {/* BLOQUE DE ESTILOS */}
       <style>{`
+/* --- AJUSTE DE SCROLL PARA EL MENÚ INFERIOR --- */
+        .insta-feed-container {
+          padding-bottom: 90px; /* Compensa la altura del menú inferior. Aumenta o disminuye este valor si es necesario */
+        }
+
         /* --- ESTILOS DEL AVATAR --- */
         .custom-avatar {
           width: 42px;

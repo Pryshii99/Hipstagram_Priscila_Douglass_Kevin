@@ -123,6 +123,12 @@ export default function ExplorePage() {
 
       {/* BLOQUE DE ESTILOS CSS PARA EL BOTÓN */}
       <style>{`
+/* --- AJUSTE DE SCROLL PARA EL MENÚ INFERIOR --- */
+        .hip-explore-container {
+          padding-bottom: 90px; /* Compensa la altura del menú inferior */
+        }
+
+
 .hip-select-yellow {
   padding: 4px 10px;
   border-radius: 8px;
