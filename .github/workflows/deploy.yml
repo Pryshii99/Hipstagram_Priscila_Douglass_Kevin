@@ -1,0 +1,32 @@
+name: Deploy Hipstagram
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Deploy to Server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.BASTION_IP }}
+        username: ubuntu
+        key: ${{ secrets.EC2_PEM_KEY }}
+        script: |
+          # 1. Despliegue Frontend
+          echo "Actualizando Frontend..."
+          cd ~/Hipstagram_Priscila_Douglass_Kevin/frontend
+          git pull origin main
+          sudo docker stop hipstagram-frontend || true
+          sudo docker rm hipstagram-frontend || true
+          sudo docker build -t hipstagram-frontend .
+          sudo docker run -d -p 80:8080 --name hipstagram-frontend --restart always hipstagram-frontend
+          
+          # 2. Despliegue Backend
+          echo "Actualizando Backend..."
+          ssh -o StrictHostKeyChecking=no ubuntu@10.0.2.154 "cd ~/Hipstagram_Priscila_Douglass_Kevin/backend && git pull origin main && pm2 restart hipstagram-backend"
