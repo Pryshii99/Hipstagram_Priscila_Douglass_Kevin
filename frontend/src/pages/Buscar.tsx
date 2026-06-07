@@ -56,8 +56,8 @@ export default function SearchPage() {
 
   return (
     <div className="hip-feed">
-      <h5 className="fw-bold mb-3" style={{ color: '#ffc107' }}>
-        <i className="bi bi-search me-2"></i>Buscar
+   <h5 className="fw-bold mb-3" style={{ color: '#28a745' }}>
+        <i className="bi bi-search me-2"></i>BuscarDonde
       </h5>
       
       {/* Tarjeta de búsqueda con borde de identidad amarilla */}
@@ -70,7 +70,7 @@ export default function SearchPage() {
                 type="text" 
                 className="form-control bg-dark text-white border-secondary" 
                 style={{ paddingLeft: 36, borderRadius: 10 }}
-                // 🚀 MODIFICACIÓN: Placeholder dinámico para el modo usuario
+               
                 placeholder={mode === 'hashtag' ? '#guate, #viaje...' : mode === 'user' ? 'ej. kevin, esau...' : 'Busca cualquier texto...'}
                 value={query} 
                 onChange={e => setQuery(e.target.value)} 
@@ -89,7 +89,7 @@ export default function SearchPage() {
           </div>
 
           <div className="d-flex gap-2">
-            {/* 🚀 MODIFICACIÓN: Añadida la opción de Usuarios al arreglo */}
+         
             {([
               ['hashtag', 'bi-hash', 'Por hashtag'], 
               ['text', 'bi-fonts', 'Texto libre'],
