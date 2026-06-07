@@ -56,8 +56,8 @@ export default function SearchPage() {
 
   return (
     <div className="hip-feed">
-   <h5 className="fw-bold mb-3" style={{ color: '#28a745' }}>
-        <i className="bi bi-search me-2"></i>BuscarDonde
+      <h5 className="fw-bold mb-3" style={{ color: '#ffc107' }}>
+        <i className="bi bi-search me-2"></i>Buscar
       </h5>
       
       {/* Tarjeta de búsqueda con borde de identidad amarilla */}
