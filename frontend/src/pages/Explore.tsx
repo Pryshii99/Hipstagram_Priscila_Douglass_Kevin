@@ -136,11 +136,75 @@ async function load(p: number, currentSort: string) {
 
       {/* BLOQUE DE ESTILOS CSS PARA EL BOTÓN */}
       <style>{`
+      
 /* --- AJUSTE DE SCROLL PARA EL MENÚ INFERIOR --- */
+
+/* --- ESTILOS DE LA CUADRÍCULA (GRID) --- */
+        .insta-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr); /* Mantiene las 3 columnas */
+          gap: 8px; /* <-- ESTA ES LA CLAVE. Sube a 10px o 12px si las quieres más separadas */
+          padding: 8px; /* Un poco de espacio en los bordes de la pantalla para que no pegue a los lados */
+        }
+        
+        .insta-item {
+          aspect-ratio: 1 / 1; /* Fuerza a que sean cuadrados perfectos */
+          position: relative;
+          cursor: pointer;
+          border-radius: 4px; /* Opcional: redondea un poco las esquinas para un look más moderno */
+          overflow: hidden;
+          
+        }
         .hip-explore-container {
           padding-bottom: 90px; /* Compensa la altura del menú inferior */
         }
+/* --- EFECTO REFLEJO DE ESPEJO Y ZOOM --- */
+        
+        /* 1. Preparamos la imagen para el zoom sutil */
+        .insta-item img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform 0.5s ease; /* Animación suave */
+        }
 
+        /* 2. El rayo de luz (reflejo) oculto a la izquierda */
+        .insta-item::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: -150%;
+          width: 50%;
+          height: 100%;
+          background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.3) 50%, rgba(255, 255, 255, 0) 100%);
+          transform: skewX(-25deg); /* Inclinamos la luz para darle dinamismo */
+          transition: all 0.6s ease;
+          z-index: 1; /* Sobre la imagen */
+          pointer-events: none; /* Evita que bloquee los clics al post */
+        }
+
+        /* 3. La magia al hacer Hover: El zoom y el destello */
+        .insta-item:hover img {
+          transform: scale(1.08); /* Acerca la imagen ligeramente */
+        }
+
+        .insta-item:hover::before {
+          left: 150%; /* Mueve el rayo de luz de izquierda a derecha a toda velocidad */
+        }
+
+        /* 4. Aseguramos que los likes y el usuario queden por encima de la luz */
+        .insta-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(0,0,0,0.4);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          z-index: 2;
+        }
+
+        .insta-item:hover .insta-overlay {
+          opacity: 1;
+        }
 
 .hip-select-yellow {
   padding: 4px 10px;

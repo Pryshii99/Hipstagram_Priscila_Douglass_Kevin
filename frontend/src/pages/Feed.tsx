@@ -171,14 +171,32 @@ async function load(p: number) {
           background-color: #000;
           transition: all 0.3s ease;
           cursor: pointer;
-          overflow: hidden; /* Evita que la imagen desborde bordes redondeados si los hubiera */
+          overflow: hidden; 
+          position: relative;
         }
         
         .custom-hover-card:hover {
           border-color: #ffc107 !important;
           box-shadow: 0 0 12px rgba(255, 193, 7, 0.2);
         }
+.custom-hover-card::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: -150%;
+          width: 50%;
+          height: 100%;
+          /* Degradado de luz sutil para no opacar el texto */
+          background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0) 100%);
+          transform: skewX(-25deg);
+          transition: left 0.6s ease; /* Solo animamos el movimiento */
+          z-index: 10; /* Por encima de la imagen y los textos */
+          pointer-events: none; /* Para que puedas seguir haciendo clic en los botones de Like o Hashtags */
+        }
 
+        .custom-hover-card:hover::before {
+          left: 150%; /* Dispara el barrido de luz de izquierda a derecha */
+        }
   
         .insta-card-img-container {
           width: 100%;
