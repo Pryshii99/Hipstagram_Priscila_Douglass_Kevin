@@ -25,13 +25,26 @@ export default function ExplorePage() {
   const [sortBy, setSortBy] = useState('likes');
 
   // NUEVO: La función load ahora recibe el ordenamiento actual
-  async function load(p: number, currentSort: string) {
+async function load(p: number, currentSort: string) {
     setLoading(true);
     try {
       // Se envía el parámetro de ordenamiento a la API
       const { data } = await postsAPI.getExplore(p, currentSort);
       const arr: Publicacion[] = data.posts ?? data ?? [];
-      p === 1 ? setPosts(arr) : setPosts(prev => [...prev, ...arr]);
+      
+      // --- INICIO DE LA CORRECCIÓN ---
+      if (p === 1) {
+        // Si es la página 1, reemplazamos todo (viene limpio del backend)
+        setPosts(arr);
+      } else {
+        // Si es página > 1 (scroll), concatenamos y filtramos duplicados
+        setPosts(prev => {
+          const allPosts = [...prev, ...arr];
+          return Array.from(new Map(allPosts.map(item => [item.id, item])).values());
+        });
+      }
+      // --- FIN DE LA CORRECCIÓN ---
+
       setHasMore(arr.length === 10);
       setPage(p);
     } catch {

@@ -21,12 +21,21 @@ export default function FeedPage() { // Asumí el nombre FeedPage
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
 
-  async function load(p: number) {
+async function load(p: number) {
     setLoading(true);
     try {
       const { data } = await postsAPI.getExplore(p); 
       const arr: Publicacion[] = data.posts ?? data ?? [];
-      p === 1 ? setPosts(arr) : setPosts(prev => [...prev, ...arr]);
+      
+      if (p === 1) {
+        setPosts(arr);
+      } else {
+        setPosts(prev => {
+          const allPosts = [...prev, ...arr];
+          return Array.from(new Map(allPosts.map(item => [item.id, item])).values());
+        });
+      }
+
       setHasMore(arr.length === 10); // Asumiendo que 10 es el límite por página
       setPage(p);
     } catch {
@@ -35,7 +44,6 @@ export default function FeedPage() { // Asumí el nombre FeedPage
       setLoading(false);
     }
   }
-
   useEffect(() => { load(1); }, []);
 
   return (
