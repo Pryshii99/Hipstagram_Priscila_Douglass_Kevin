@@ -90,7 +90,6 @@ async function load(p: number) {
 
             {/* 3. Acciones y Contenido */}
             <div className="p-3 pb-2">
-              {/* 🚀 DISEÑO TIPO INSTAGRAM PARA LAS INTERACCIONES 🚀 */}
               <div className="d-flex align-items-center gap-4 mb-2">
                 <div className="btn-ig-action">
                   <i className="bi bi-hand-thumbs-up"></i>

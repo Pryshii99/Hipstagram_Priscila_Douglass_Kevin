@@ -23,8 +23,7 @@ export default function SearchPage() {
     let finalQuery = q.trim();
     if (!finalQuery) return;
 
-    // Si el modo es hashtag pero el texto NO empieza con '#', 
-    // detenemos la búsqueda y mostramos 0 resultados.
+   
     if (m === 'hashtag' && !finalQuery.startsWith('#')) {
       setResults([]);
       return;
@@ -32,7 +31,7 @@ export default function SearchPage() {
 
     setLoading(true);
     try {
-      // 🚀 MODIFICACIÓN: Enrutamos la petición según los 3 modos posibles
+   
       let fn;
       if (m === 'hashtag') fn = searchAPI.byHashtag;
       else if (m === 'user') fn = searchAPI.byUser; // <- Llama a la nueva ruta

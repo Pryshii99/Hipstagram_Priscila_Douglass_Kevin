@@ -1,4 +1,4 @@
-# Etapa 1: Construcción (Empaqueta el código de React)
+# Etapa 1: Construcción 
 FROM node:18-alpine AS build
 WORKDIR /app
 COPY package*.json ./

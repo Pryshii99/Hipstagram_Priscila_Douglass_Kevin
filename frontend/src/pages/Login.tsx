@@ -4,7 +4,6 @@ import { authAPI } from '../api/clientes';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { Usuario } from '../types';
-// 🚀 NUEVO: Importamos el SplashScreen
 import SplashScreen from '../componentes/SplashScreen';
 
 export default function LoginPage() {
@@ -17,8 +16,6 @@ export default function LoginPage() {
   const [showPwd,  setShowPwd]  = useState(false);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
-  
-  // 🚀 NUEVO: Estado para controlar si mostramos la animación
   const [showSplash, setShowSplash] = useState(false);
 
   async function onSubmit(e: FormEvent) {
@@ -30,10 +27,10 @@ export default function LoginPage() {
       // 1. Validamos credenciales en el backend
       const { data } = await authAPI.login({ correo, password });
       
-      // 2. 🚀 ACTIVAMOS LA ANIMACIÓN Y OCULTAMOS EL FORMULARIO
+    
       setShowSplash(true);
       
-      // 3. 🚀 RETRASAMOS LA NOTIFICACIÓN GLOBAL Y LA NAVEGACIÓN 3.5 SEGUNDOS
+      
       setTimeout(() => {
         // Todo esto se ejecuta HASTA QUE termina la animación
         login(data.user as Usuario, data.accessToken as string);
@@ -51,7 +48,7 @@ export default function LoginPage() {
     } 
   }
 
-  // 🚀 NUEVO: Si la animación está activa, renderizamos SplashScreen en vez del form
+
   if (showSplash) {
     return <SplashScreen />;
   }
@@ -126,7 +123,7 @@ export default function LoginPage() {
                        0 0 20px rgba(255, 193, 7, 0.5);
         }
 
-        /* 🚀 AJUSTE FINAL: Velocidad 6.9s | Intensidad 0.65 🚀 */
+      
         .yellow-sparkle {
           position: absolute;
           border-radius: 50%;

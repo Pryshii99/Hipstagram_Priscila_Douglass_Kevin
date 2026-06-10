@@ -32,11 +32,8 @@ export default function AdminPage() {
   const [auditQ, setAuditQ] = useState('');
   const [auditAction, setAuditAction] = useState('ALL');
   const [auditTable, setAuditTable] = useState('ALL');
-
-  // 🚀 NUEVO: Estados para la paginación de Auditoría
   const [auditPage, setAuditPage] = useState(1);
   const [auditHasMore, setAuditHasMore] = useState(true);
-
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -48,7 +45,7 @@ export default function AdminPage() {
     }
     if (tab === 'users') loadUsers();
     if (tab === 'audit') {
-      // 🚀 Reiniciamos paginación al entrar a la tab de auditoría o cambiar filtros select
+     
       setAuditPage(1);
       setAuditHasMore(true);
       setAudit([]);
@@ -93,7 +90,6 @@ export default function AdminPage() {
     finally { setLoading(false); }
   }
 
-  // 🚀 ACTUALIZADO: Función adaptada para paginar de 25 en 25
   async function loadAudit(pageNum = 1) {
     setLoading(true);
     try { 
@@ -120,7 +116,7 @@ export default function AdminPage() {
     finally { setLoading(false); }
   }
 
-  // 🚀 NUEVO: Función para el botón Cargar Más de Auditoría
+
   const handleAuditLoadMore = () => {
     const nextPage = auditPage + 1;
     setAuditPage(nextPage);
@@ -422,7 +418,7 @@ export default function AdminPage() {
 
           <div className="table-responsive" style={{ border: 'none' }}>
             {loading && audit.length === 0 && <div className="hip-spin"><div className="spinner-border text-warning"/></div>}
-            {/* 🚀 APLICACIÓN REGLA DE ORO: CLASE mobile-audit-table 🚀 */}
+          
             <table className="table table-dark table-hover align-middle mobile-audit-table" style={{ fontSize:'0.85rem' }}>
               <thead>
                 <tr>

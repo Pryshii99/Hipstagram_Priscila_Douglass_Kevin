@@ -14,8 +14,6 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Usuario|null>(null);
   const [posts,   setPosts]   = useState<Publicacion[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // 🚀 NUEVO ESTADO PARA EL MODAL DE ELIMINACIÓN 🚀
   const [postToDelete, setPostToDelete] = useState<number | null>(null);
 
   useEffect(() => {
@@ -23,7 +21,7 @@ export default function ProfilePage() {
       .then(({ data }) => { 
         setProfile(data.user ?? data); 
         
-        // 🚀 ORDENAR PUBLICACIONES POR LIKES (De mayor a menor) 🚀
+
         const fetchedPosts: Publicacion[] = data.posts ?? [];
         fetchedPosts.sort((a, b) => (b.likes_count || 0) - (a.likes_count || 0));
         
@@ -52,7 +50,7 @@ const confirmDelete = async () => {
       setPosts(prevPosts => prevPosts.filter(p => p.id !== postToDelete)); 
     } catch (error: any) {
       if (error.response?.status === 409 || error.response?.status === 400) {
-        // ✅ Línea actualizada para leer el mensaje del backend:
+      
         showToast(error.response?.data?.error || 'No se puede eliminar.', 'error');
       } else {
         showToast('Error al intentar eliminar la publicación.', 'error');

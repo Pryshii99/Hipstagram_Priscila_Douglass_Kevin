@@ -4,7 +4,6 @@ import { postsAPI } from '../api/clientes';
 import { Publicacion } from '../types';
 import { useToast } from '../context/ToastContext';
 
-// ── Función de utilidad para formatear el tiempo ──
 function timeAgo(d: string) {
   const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
   if (s < 60) return 'ahora';
@@ -21,10 +20,10 @@ export default function ExplorePage() {
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
   
-  // NUEVO: Estado para el ordenamiento (por defecto 'likes' para Destacadas)
+
   const [sortBy, setSortBy] = useState('likes');
 
-  // NUEVO: La función load ahora recibe el ordenamiento actual
+
 async function load(p: number, currentSort: string) {
     setLoading(true);
     try {
@@ -32,18 +31,18 @@ async function load(p: number, currentSort: string) {
       const { data } = await postsAPI.getExplore(p, currentSort);
       const arr: Publicacion[] = data.posts ?? data ?? [];
       
-      // --- INICIO DE LA CORRECCIÓN ---
+     
       if (p === 1) {
-        // Si es la página 1, reemplazamos todo (viene limpio del backend)
+      
         setPosts(arr);
       } else {
-        // Si es página > 1 (scroll), concatenamos y filtramos duplicados
+
         setPosts(prev => {
           const allPosts = [...prev, ...arr];
           return Array.from(new Map(allPosts.map(item => [item.id, item])).values());
         });
       }
-      // --- FIN DE LA CORRECCIÓN ---
+      
 
       setHasMore(arr.length === 10);
       setPage(p);
@@ -54,7 +53,7 @@ async function load(p: number, currentSort: string) {
     }
   }
 
-  // NUEVO: Se vuelve a ejecutar desde la página 1 cada vez que cambia el ordenamiento
+  
   useEffect(() => { 
     load(1, sortBy); 
   }, [sortBy]);
@@ -63,13 +62,13 @@ async function load(p: number, currentSort: string) {
 
   return (
     <div className="hip-explore-container">
-      {/* Encabezado discreto estilo Instagram con el Combobox integrado */}
+     
       <div className="px-2 py-3 d-flex justify-content-between align-items-center">
         <h6 className="fw-bold mb-0 text-uppercase" style={{ letterSpacing: '1px', fontSize: '0.8rem', color: '#ffc107' }}>
           <i className="bi bi-grid-3x3 me-2"></i>Publicaciones Destacadas
         </h6>
         
-        {/*  Combobox de ordenamiento estilizado */}
+
        <select
          className="hip-select-yellow"
   value={sortBy}
@@ -96,7 +95,7 @@ async function load(p: number, currentSort: string) {
         <div className="hip-spin"><div className="spinner-border text-primary" /></div>
       )}
 
-      {/* GRID DE 3 COLUMNAS PEGADAS */}
+      
       <div className="insta-grid">
         {posts.map((p, i) => (
           <div key={p.id} className="insta-item" onClick={() => navigate(`/post/${p.id}`)}>
@@ -108,7 +107,7 @@ async function load(p: number, currentSort: string) {
               </div>
             )}
 
-            {/* OVERLAY CON DETALLES (Aparece en Hover) */}
+  
             <div className="insta-overlay">
               <div className="d-flex flex-column align-items-center justify-content-center h-100">
                 <div className="fw-bold text-white mb-1">
@@ -134,7 +133,7 @@ async function load(p: number, currentSort: string) {
         </div>
       )}
 
-      {/* BLOQUE DE ESTILOS CSS PARA EL BOTÓN */}
+     
       <style>{`
       
 /* --- AJUSTE DE SCROLL PARA EL MENÚ INFERIOR --- */

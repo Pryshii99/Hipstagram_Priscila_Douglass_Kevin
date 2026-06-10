@@ -60,7 +60,7 @@ export default function RegisterPage() {
       <div className="yellow-sparkle s3"></div>
 
       <div className="hip-auth-card">
-        {/* Logo con Resplandor Neón */}
+   
         <div className="text-center mb-4">
           <div className="hip-logo-icon hip-logo-glow"><i className="bi bi-camera2"></i></div>
           <h1 className="hip-logo-title hip-logo-glow">Hipstagram</h1>

@@ -18,8 +18,6 @@ router.get('/me', requireAuth, async (req, res) => {
     );
     
     const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
-    
-    // 🚀 CORRECCIÓN S3: Verificamos si la imagen ya trae "http"
     const postsConUrlCompleta = pRes.rows.map(post => ({
       ...post,
       imagen_url: post.imagen_url 
@@ -56,8 +54,6 @@ router.get('/admin/posts', requireAuth, requireRole('ADMIN'), async (req, res) =
     `, [estado, offset]);
     
     const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
-    
-    // 🚀 CORRECCIÓN S3
     const postsConUrlCompleta = result.rows.map(post => ({
       ...post,
       imagen_url: post.imagen_url 
@@ -141,8 +137,6 @@ router.get('/:id', requireAuth, async (req, res) => {
     );
     
     const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
-    
-    // 🚀 CORRECCIÓN S3
     const postsConUrlCompleta = pRes.rows.map(post => ({
       ...post,
       imagen_url: post.imagen_url 

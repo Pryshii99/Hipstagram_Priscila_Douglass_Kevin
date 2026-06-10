@@ -62,11 +62,7 @@ router.post('/register', async (req, res) => {
       [nombre_usuario, correo.toLowerCase(), hash]
     );
     const newUser = result.rows[0];
-
-    // Auditoría
     await audit(newUser.id, 'REGISTRO', 'usuarios', { correo: newUser.correo }, ip);
-
-    // Generar tokens
     const { accessToken, refreshToken } = generarTokens(newUser);
 
 
