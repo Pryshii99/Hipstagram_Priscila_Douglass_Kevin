@@ -8,14 +8,14 @@ const api: AxiosInstance = axios.create({
   withCredentials: true,
 });
 
-// Agrega token JWT automáticamente
+
 api.interceptors.request.use(cfg => {
   const t = localStorage.getItem('hip_token');
   if (t) cfg.headers!['Authorization'] = `Bearer ${t}`;
   return cfg;
 });
 
-// Si el token expira (401) intenta renovarlo con la cookie refresh
+
 api.interceptors.response.use(
   r => r,
   async err => {

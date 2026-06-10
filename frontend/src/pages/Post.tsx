@@ -270,10 +270,10 @@ export default function PostPage() {
                 </div>
               </div>
 
-              {/* Mostrar botones solo si el usuario actual es el dueño del comentario y NO está editando */}
+             
               {user?.nombre_usuario === c.nombre_usuario && editingCommentId !== c.id && (
                 <div className="d-flex align-items-center mt-1">
-                  {/* BOTÓN DE EDITAR A LA IZQUIERDA  */}
+                
                   <button 
                     className="btn btn-sm text-info border-0 px-2 btn-action-cmt" 
                     onClick={() => startEditing(c.id, c.contenido)}

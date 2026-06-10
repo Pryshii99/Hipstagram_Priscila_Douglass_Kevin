@@ -22,8 +22,7 @@ export default function NewPostPage() {
   function pickFile(f: File | null | undefined) {
     if (!f) return;
     if (f.size > 5*1024*1024) { showToast('El archivo supera 5 MB.','error'); return; }
-    
-    // 🚀 CAMBIO 1: Agregamos 'image/gif' al arreglo de validación frontal 🚀
+
     if (['image/jpeg','image/png','image/webp','image/gif'].indexOf(f.type) === -1) {
       showToast('Solo JPG, PNG, WebP o GIF.','error'); return;
     }
@@ -75,7 +74,7 @@ export default function NewPostPage() {
           {/* Drop zone / preview */}
           {preview ? (
             <div className="mb-3 position-relative">
-              {/* Aquí el GIF se mostrará animado automáticamente gracias a URL.createObjectURL */}
+             
               <img src={preview} alt="preview" className="hip-preview" />
               <button type="button"
                 className="btn btn-sm btn-danger position-absolute top-0 end-0 m-2 rounded-circle"
@@ -91,10 +90,9 @@ export default function NewPostPage() {
               onDrop={e => { e.preventDefault(); setDrag(false); pickFile(e.dataTransfer.files[0]); }}
               onClick={() => fileRef.current?.click()}>
               <i className="bi bi-cloud-arrow-up-fill d-block mb-2"></i>
-              {/* 🚀 CAMBIO 2: Actualizamos los textos 🚀 */}
+          
               <p className="mb-1 fw-semibold">Arrastra tu foto o GIF aquí o haz click</p>
               <small className="text-muted">JPG, PNG, WebP, GIF · Máximo 5 MB</small>
-              {/* 🚀 CAMBIO 3: Especificamos image/gif en el accept 🚀 */}
               <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="d-none"
                 onChange={e => pickFile(e.target.files?.[0])} />
             </div>
