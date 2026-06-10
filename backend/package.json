@@ -4,7 +4,8 @@
   "private": true,
   "main": "scr/index.js",
   "scripts": {
-    "start": "node scr/index.js"
+    "start": "node scr/index.js",
+    "test": "jest"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1055.0",
