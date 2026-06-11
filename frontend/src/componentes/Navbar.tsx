@@ -11,9 +11,8 @@ export default function Navbar() {
   const location  = useLocation();
   const [expanded, setExpanded] = useState(false);
   
-  // 🚀 ESTADO PARA EL MODAL DE CONFIRMACIÓN 🚀
+ 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-
   const active = (p: string) => location.pathname === p ? 'active' : '';
 
   async function handleLogout() {
@@ -71,7 +70,7 @@ export default function Navbar() {
              {expanded && <span className="nav-label ms-1">{firstName}</span>}
           </div>
 
-          {/* 🚀 AHORA ABRE EL MODAL EN LUGAR DE CERRAR DIRECTO 🚀 */}
+   
           <div className="nav-item-container logout-btn mt-2" onClick={() => setShowLogoutModal(true)}>
              <i className="bi bi-box-arrow-right"></i>
              {expanded && <span className="nav-label">Cerrar sesión</span>}
@@ -79,7 +78,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* 🚀 MODAL DE CONFIRMACIÓN 🚀 */}
+  
       {showLogoutModal && (
         <div className="logout-modal-overlay">
           <div className="logout-modal-content">
@@ -151,8 +150,7 @@ export default function Navbar() {
             left: 0;
             height: 100vh;
             width: var(--sidebar-collapsed-width);
-            
-            /* 🚀 EFECTO GLASSMORPHISM AQUÍ 🚀 */
+
             background-color: rgba(18, 18, 18, 0.4); /* Negro transparente */
             backdrop-filter: blur(12px) saturate(160%); /* Desenfoque esmerilado */
             -webkit-backdrop-filter: blur(12px) saturate(160%); /* Soporte Safari */

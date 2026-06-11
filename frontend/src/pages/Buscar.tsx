@@ -23,8 +23,7 @@ export default function SearchPage() {
     let finalQuery = q.trim();
     if (!finalQuery) return;
 
-    // Si el modo es hashtag pero el texto NO empieza con '#', 
-    // detenemos la búsqueda y mostramos 0 resultados.
+   
     if (m === 'hashtag' && !finalQuery.startsWith('#')) {
       setResults([]);
       return;
@@ -32,7 +31,7 @@ export default function SearchPage() {
 
     setLoading(true);
     try {
-      // 🚀 MODIFICACIÓN: Enrutamos la petición según los 3 modos posibles
+   
       let fn;
       if (m === 'hashtag') fn = searchAPI.byHashtag;
       else if (m === 'user') fn = searchAPI.byUser; // <- Llama a la nueva ruta
@@ -56,7 +55,7 @@ export default function SearchPage() {
 
   return (
     <div className="hip-feed">
-      <h5 className="fw-bold mb-3" style={{ color: 'var(--hip-primary)' }}>
+      <h5 className="fw-bold mb-3" style={{ color: '#ffc107' }}>
         <i className="bi bi-search me-2"></i>Buscar
       </h5>
       
@@ -70,7 +69,7 @@ export default function SearchPage() {
                 type="text" 
                 className="form-control bg-dark text-white border-secondary" 
                 style={{ paddingLeft: 36, borderRadius: 10 }}
-                // 🚀 MODIFICACIÓN: Placeholder dinámico para el modo usuario
+               
                 placeholder={mode === 'hashtag' ? '#guate, #viaje...' : mode === 'user' ? 'ej. kevin, esau...' : 'Busca cualquier texto...'}
                 value={query} 
                 onChange={e => setQuery(e.target.value)} 
@@ -89,7 +88,7 @@ export default function SearchPage() {
           </div>
 
           <div className="d-flex gap-2">
-            {/* 🚀 MODIFICACIÓN: Añadida la opción de Usuarios al arreglo */}
+         
             {([
               ['hashtag', 'bi-hash', 'Por hashtag'], 
               ['text', 'bi-fonts', 'Texto libre'],

@@ -4,7 +4,6 @@ import { postsAPI } from '../api/clientes';
 import { Publicacion } from '../types';
 import { useToast } from '../context/ToastContext';
 
-// ── Función de utilidad para formatear el tiempo ──
 function timeAgo(d: string) {
   const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
   if (s < 60) return 'ahora';
@@ -21,17 +20,30 @@ export default function ExplorePage() {
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
   
-  // NUEVO: Estado para el ordenamiento (por defecto 'likes' para Destacadas)
+
   const [sortBy, setSortBy] = useState('likes');
 
-  // NUEVO: La función load ahora recibe el ordenamiento actual
-  async function load(p: number, currentSort: string) {
+
+async function load(p: number, currentSort: string) {
     setLoading(true);
     try {
       // Se envía el parámetro de ordenamiento a la API
       const { data } = await postsAPI.getExplore(p, currentSort);
       const arr: Publicacion[] = data.posts ?? data ?? [];
-      p === 1 ? setPosts(arr) : setPosts(prev => [...prev, ...arr]);
+      
+     
+      if (p === 1) {
+      
+        setPosts(arr);
+      } else {
+
+        setPosts(prev => {
+          const allPosts = [...prev, ...arr];
+          return Array.from(new Map(allPosts.map(item => [item.id, item])).values());
+        });
+      }
+      
+
       setHasMore(arr.length === 10);
       setPage(p);
     } catch {
@@ -41,7 +53,7 @@ export default function ExplorePage() {
     }
   }
 
-  // NUEVO: Se vuelve a ejecutar desde la página 1 cada vez que cambia el ordenamiento
+  
   useEffect(() => { 
     load(1, sortBy); 
   }, [sortBy]);
@@ -50,26 +62,28 @@ export default function ExplorePage() {
 
   return (
     <div className="hip-explore-container">
-      {/* Encabezado discreto estilo Instagram con el Combobox integrado */}
+     
       <div className="px-2 py-3 d-flex justify-content-between align-items-center">
-        <h6 className="fw-bold mb-0 text-uppercase" style={{ letterSpacing: '1px', fontSize: '0.8rem', color: '#8e8e8e' }}>
+        <h6 className="fw-bold mb-0 text-uppercase" style={{ letterSpacing: '1px', fontSize: '0.8rem', color: '#ffc107' }}>
           <i className="bi bi-grid-3x3 me-2"></i>Publicaciones Destacadas
         </h6>
         
-        {/* NUEVO: Combobox de ordenamiento estilizado */}
-        <select 
-          value={sortBy} 
-          onChange={(e) => setSortBy(e.target.value)}
-          style={{ 
-            padding: '4px 10px', 
-            borderRadius: '6px', 
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            background: 'rgba(0, 0, 0, 0.6)',
-            color: 'white',
-            outline: 'none',
-            fontSize: '0.8rem',
-            cursor: 'pointer'
-          }}
+
+       <select
+         className="hip-select-yellow"
+  value={sortBy}
+  onChange={(e) => setSortBy(e.target.value)}
+  style={{
+    padding: '4px 10px',
+    borderRadius: '6px',
+    border: '1px solid #ffc107',
+    background: '#ffc107',
+    color: '#000',
+    outline: 'none',
+    fontSize: '0.8rem',
+    cursor: 'pointer',
+    fontWeight: '600'
+  }}
         >
           <option value="likes">Más Populares</option>
           <option value="recent">Más Recientes</option>
@@ -81,7 +95,7 @@ export default function ExplorePage() {
         <div className="hip-spin"><div className="spinner-border text-primary" /></div>
       )}
 
-      {/* GRID DE 3 COLUMNAS PEGADAS */}
+      
       <div className="insta-grid">
         {posts.map((p, i) => (
           <div key={p.id} className="insta-item" onClick={() => navigate(`/post/${p.id}`)}>
@@ -93,7 +107,7 @@ export default function ExplorePage() {
               </div>
             )}
 
-            {/* OVERLAY CON DETALLES (Aparece en Hover) */}
+  
             <div className="insta-overlay">
               <div className="d-flex flex-column align-items-center justify-content-center h-100">
                 <div className="fw-bold text-white mb-1">
@@ -111,16 +125,112 @@ export default function ExplorePage() {
 
       {hasMore && !loading && (
         <div className="text-center my-4">
-          {/* 🚀 BOTÓN CON LA NUEVA CLASE GLOW 🚀 */}
-          {/* NUEVO: El botón ahora pasa el sortBy actual */}
+       
+          {/*  El botón ahora pasa el sortBy actual */}
           <button className="btn btn-warning rounded-pill px-4 fw-bold btn-glow-warning" onClick={() => load(page + 1, sortBy)}>
             Cargar más
           </button>
         </div>
       )}
 
-      {/* BLOQUE DE ESTILOS CSS PARA EL BOTÓN */}
+     
       <style>{`
+      
+/* --- AJUSTE DE SCROLL PARA EL MENÚ INFERIOR --- */
+
+/* --- ESTILOS DE LA CUADRÍCULA (GRID) --- */
+        .insta-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr); /* Mantiene las 3 columnas */
+          gap: 8px; /* <-- ESTA ES LA CLAVE. Sube a 10px o 12px si las quieres más separadas */
+          padding: 8px; /* Un poco de espacio en los bordes de la pantalla para que no pegue a los lados */
+        }
+        
+        .insta-item {
+          aspect-ratio: 1 / 1; /* Fuerza a que sean cuadrados perfectos */
+          position: relative;
+          cursor: pointer;
+          border-radius: 4px; /* Opcional: redondea un poco las esquinas para un look más moderno */
+          overflow: hidden;
+          
+        }
+        .hip-explore-container {
+          padding-bottom: 90px; /* Compensa la altura del menú inferior */
+        }
+/* --- EFECTO REFLEJO DE ESPEJO Y ZOOM --- */
+        
+        /* 1. Preparamos la imagen para el zoom sutil */
+        .insta-item img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform 0.5s ease; /* Animación suave */
+        }
+
+        /* 2. El rayo de luz (reflejo) oculto a la izquierda */
+        .insta-item::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: -150%;
+          width: 50%;
+          height: 100%;
+          background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.3) 50%, rgba(255, 255, 255, 0) 100%);
+          transform: skewX(-25deg); /* Inclinamos la luz para darle dinamismo */
+          transition: all 0.6s ease;
+          z-index: 1; /* Sobre la imagen */
+          pointer-events: none; /* Evita que bloquee los clics al post */
+        }
+
+        /* 3. La magia al hacer Hover: El zoom y el destello */
+        .insta-item:hover img {
+          transform: scale(1.08); /* Acerca la imagen ligeramente */
+        }
+
+        .insta-item:hover::before {
+          left: 150%; /* Mueve el rayo de luz de izquierda a derecha a toda velocidad */
+        }
+
+        /* 4. Aseguramos que los likes y el usuario queden por encima de la luz */
+        .insta-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(0,0,0,0.4);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          z-index: 2;
+        }
+
+        .insta-item:hover .insta-overlay {
+          opacity: 1;
+        }
+
+.hip-select-yellow {
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid #ffc107;
+  background: #ffc107;
+  color: #000;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.hip-select-yellow:hover {
+  box-shadow:
+    0 0 12px rgba(255, 193, 7, 0.6),
+    0 0 20px rgba(255, 193, 7, 0.3);
+}
+
+.hip-select-yellow:focus {
+  box-shadow:
+    0 0 15px rgba(255, 193, 7, 0.8),
+    0 0 25px rgba(255, 193, 7, 0.4);
+}
+
+
         .btn-glow-warning {
           transition: all 0.3s ease-in-out;
         }

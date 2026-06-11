@@ -1,19 +1,21 @@
 import axios, { AxiosInstance } from 'axios';
 
 const BASE = process.env.REACT_APP_API_URL || 'http://localhost:3000/api/v1';
+//Nota: Solo cambiare para generar apk
+//const BASE = process.env.REACT_APP_API_URL || 'http://3.133.139.202/api/v1';
 const api: AxiosInstance = axios.create({
   baseURL: BASE,
   withCredentials: true,
 });
 
-// Agrega token JWT automáticamente
+
 api.interceptors.request.use(cfg => {
   const t = localStorage.getItem('hip_token');
   if (t) cfg.headers!['Authorization'] = `Bearer ${t}`;
   return cfg;
 });
 
-// Si el token expira (401) intenta renovarlo con la cookie refresh
+
 api.interceptors.response.use(
   r => r,
   async err => {

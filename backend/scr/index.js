@@ -11,6 +11,7 @@ const userRoutes  = require('./routes/users');
 const adminRoutes = require('./routes/admin');
 
 const app  = express();
+process.env.PORT
 const PORT = process.env.PORT || 3000;
 
 
@@ -20,7 +21,10 @@ app.use(cors({
     'http://localhost:3001',
     'http://localhost',
     'https://localhost',
-    'capacitor://localhost'
+    'capacitor://localhost',
+    'https://hipstagram-web-315020079867.us-central1.run.app',
+    'http://hipstagram-alb-377064702.us-east-2.elb.amazonaws.com', 
+    'http://3.133.139.202'
   ],
   credentials: true, 
 }));
@@ -45,6 +49,12 @@ app.use('/api/v1/auth',  authRoutes);
 app.use('/api/v1/posts', postRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/admin', adminRoutes);
+
+// Endpoint raíz exclusivo para el Health Check del Balanceador de Carga de AWS
+app.get('/', (_, res) => {
+  res.status(200).send('Hipstagram Backend: OK');
+});
+
 
 
 app.get('/health', (_, res) => {

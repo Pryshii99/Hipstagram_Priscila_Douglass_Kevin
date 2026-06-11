@@ -4,8 +4,7 @@
   "private": true,
   "main": "scr/index.js",
   "scripts": {
-    "start": "node scr/index.js",
-    "test": "echo \"Pruebas exitosas simuladas\" && exit 0"
+    "start": "node scr/index.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1055.0",

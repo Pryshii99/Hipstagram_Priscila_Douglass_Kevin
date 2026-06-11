@@ -21,12 +21,21 @@ export default function FeedPage() { // Asumí el nombre FeedPage
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(true);
 
-  async function load(p: number) {
+async function load(p: number) {
     setLoading(true);
     try {
-      const { data } = await postsAPI.getExplore(p); // ⚠️ Ojo, si es tu feed, deberías usar tu endpoint de feed, ej: postsAPI.getFeed(p)
+      const { data } = await postsAPI.getExplore(p); 
       const arr: Publicacion[] = data.posts ?? data ?? [];
-      p === 1 ? setPosts(arr) : setPosts(prev => [...prev, ...arr]);
+      
+      if (p === 1) {
+        setPosts(arr);
+      } else {
+        setPosts(prev => {
+          const allPosts = [...prev, ...arr];
+          return Array.from(new Map(allPosts.map(item => [item.id, item])).values());
+        });
+      }
+
       setHasMore(arr.length === 10); // Asumiendo que 10 es el límite por página
       setPage(p);
     } catch {
@@ -35,7 +44,6 @@ export default function FeedPage() { // Asumí el nombre FeedPage
       setLoading(false);
     }
   }
-
   useEffect(() => { load(1); }, []);
 
   return (
@@ -44,7 +52,9 @@ export default function FeedPage() { // Asumí el nombre FeedPage
         <h5 className="fw-bold mb-0">
           <i className="bi bi-stars me-2 text-warning"></i>Descubrir Destacados
         </h5>
-        <small className="text-secondary">Explora lo más popular de la comunidad</small>
+        <small style={{ color: '#ffc107' }}>
+  Explora lo más popular de la comunidad
+</small>
       </div>
 
       {loading && posts.length === 0 && (
@@ -80,7 +90,6 @@ export default function FeedPage() { // Asumí el nombre FeedPage
 
             {/* 3. Acciones y Contenido */}
             <div className="p-3 pb-2">
-              {/* 🚀 DISEÑO TIPO INSTAGRAM PARA LAS INTERACCIONES 🚀 */}
               <div className="d-flex align-items-center gap-4 mb-2">
                 <div className="btn-ig-action">
                   <i className="bi bi-hand-thumbs-up"></i>
@@ -126,7 +135,6 @@ export default function FeedPage() { // Asumí el nombre FeedPage
 
       {hasMore && !loading && (
         <div className="text-center my-5">
-          {/* 🚀 BOTÓN CON LA CLASE GLOW 🚀 */}
           <button className="btn btn-warning rounded-pill px-5 fw-bold btn-glow-warning" onClick={() => load(page + 1)}>
             Cargar más
           </button>
@@ -135,6 +143,11 @@ export default function FeedPage() { // Asumí el nombre FeedPage
 
       {/* BLOQUE DE ESTILOS */}
       <style>{`
+/* --- AJUSTE DE SCROLL PARA EL MENÚ INFERIOR --- */
+        .insta-feed-container {
+          padding-bottom: 90px; /* Compensa la altura del menú inferior. Aumenta o disminuye este valor si es necesario */
+        }
+
         /* --- ESTILOS DEL AVATAR --- */
         .custom-avatar {
           width: 42px;
@@ -157,11 +170,47 @@ export default function FeedPage() { // Asumí el nombre FeedPage
           background-color: #000;
           transition: all 0.3s ease;
           cursor: pointer;
+          overflow: hidden; 
+          position: relative;
         }
         
         .custom-hover-card:hover {
           border-color: #ffc107 !important;
           box-shadow: 0 0 12px rgba(255, 193, 7, 0.2);
+        }
+.custom-hover-card::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: -150%;
+          width: 50%;
+          height: 100%;
+          /* Degradado de luz sutil para no opacar el texto */
+          background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0) 100%);
+          transform: skewX(-25deg);
+          transition: left 0.6s ease; /* Solo animamos el movimiento */
+          z-index: 10; /* Por encima de la imagen y los textos */
+          pointer-events: none; /* Para que puedas seguir haciendo clic en los botones de Like o Hashtags */
+        }
+
+        .custom-hover-card:hover::before {
+          left: 150%; /* Dispara el barrido de luz de izquierda a derecha */
+        }
+  
+        .insta-card-img-container {
+          width: 100%;
+          background-color: #000; /* Forzamos el fondo negro detrás de la imagen */
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .insta-card-img-container img {
+          width: 100%;
+          height: auto; /* Mantiene la proporción sin deformar */
+          max-height: 600px; /* Evita que imágenes muy verticales ocupen toda la pantalla */
+          object-fit: contain; /* Asegura que la imagen completa sea visible */
+          display: block; /* Quita el espacio extra que los navegadores añaden bajo las imágenes inline */
         }
 
         /* --- ESTILOS PARA INTERACCIONES TIPO INSTAGRAM --- */
@@ -194,7 +243,7 @@ export default function FeedPage() { // Asumí el nombre FeedPage
           color: #fff !important;
         }
 
-        /* 🚀 EFECTO GLOW PARA EL BOTÓN (Faltaba esto) 🚀 */
+        /* EFECTO GLOW PARA EL BOTÓN  */
         .btn-glow-warning {
           transition: all 0.3s ease-in-out;
         }

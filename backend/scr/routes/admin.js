@@ -12,7 +12,7 @@ const router = express.Router();
 router.get('/posts', requireAuth, requireRole('ADMIN'), async (req, res) => {
     const estado = req.query.estado || 'PENDIENTE';
     const page   = parseInt(req.query.page || '1');
-    // 🚀 Límite ajustado a 9 para coincidir con la paginación del frontend
+  
     const limit  = 9; 
     const offset = (page - 1) * limit;
 
@@ -27,7 +27,7 @@ router.get('/posts', requireAuth, requireRole('ADMIN'), async (req, res) => {
             [estado, limit, offset]
         );
         
-        // 🚀 Re-introducimos la lógica de las URLs absolutas para S3 que hicimos en users.js
+       
         const baseUrl = process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.get('host')}`;
         
         const postsConUrlCompleta = result.rows.map(post => ({
@@ -263,7 +263,7 @@ router.patch('/users/:id/status', requireAuth, requireRole('ADMIN'), async (req,
 
 // GET /api/v1/admin/audit -> Histórico de transacciones [cite: 121, 149, 199-201]
 router.get('/audit', requireAuth, requireRole('ADMIN'), async (req, res) => {
-    // 🚀 LÓGICA DE FILTRADO DINÁMICO ACTUALIZADA
+   
     let { q, action, table } = req.query;
 
     try {
@@ -276,15 +276,15 @@ router.get('/audit', requireAuth, requireRole('ADMIN'), async (req, res) => {
         
         const params = [];
 
-        // Filtro de Búsqueda Rápida (Usuario o IP)
+      
         if (q) {
-            // Limpiamos el @ si el usuario lo incluye
+           
             if (q.startsWith('@')) q = q.substring(1);
             params.push(`%${q}%`);
             sql += ` AND (u.nombre_usuario ILIKE $${params.length} OR a.direccion_ip ILIKE $${params.length})`;
         }
 
-        // Filtro por Acción (Agrupador)
+    
         if (action && action !== 'ALL') {
             switch(action) {
                 case 'AUTH':
@@ -305,13 +305,13 @@ router.get('/audit', requireAuth, requireRole('ADMIN'), async (req, res) => {
             }
         }
 
-        // Filtro por Tabla
+
         if (table && table !== 'ALL') {
             params.push(table);
             sql += ` AND a.tabla_afectada = $${params.length}`;
         }
 
-        // 🚀 NUEVO: Lógica de paginación para Auditoría (25 elementos)
+        
         const page = parseInt(req.query.page || '1');
         const limit = 25;
         const offset = (page - 1) * limit;
@@ -321,7 +321,7 @@ router.get('/audit', requireAuth, requireRole('ADMIN'), async (req, res) => {
         
         const result = await query(sql, params);
         
-        // Enviamos el arreglo bajo múltiples nombres para "engañar" al Frontend
+       
         res.json({ 
             audit_logs: result.rows,
             logs: result.rows,
