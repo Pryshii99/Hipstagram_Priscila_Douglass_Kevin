@@ -140,3 +140,156 @@ describe('Pruebas Unitarias - Módulo de Autenticación (auth.js)', () => {
     });
   });
 });
+describe('POST /auth/register - Validaciones adicionales', () => {
+    test('Debe retornar 400 si el nombre de usuario es muy corto', async () => {
+      const response = await request(app)
+        .post('/auth/register')
+        .send({ nombre_usuario: 'ab', correo: 'test@test.com', password: 'password123' });
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('entre 3 y 50 caracteres');
+    });
+
+    test('Debe retornar 400 si la contraseña es menor a 8 caracteres', async () => {
+      const response = await request(app)
+        .post('/auth/register')
+        .send({ nombre_usuario: 'usuario', correo: 'test@test.com', password: '123' });
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('al menos 8 caracteres');
+    });
+
+    test('Debe retornar 409 si el correo ya está registrado', async () => {
+      poolModule.query.mockResolvedValueOnce({
+        rows: [{ id: 1, correo: 'test@test.com', nombre_usuario: 'otroUser' }]
+      });
+      const response = await request(app)
+        .post('/auth/register')
+        .send({ nombre_usuario: 'nuevoUser', correo: 'test@test.com', password: 'password123' });
+      expect(response.status).toBe(409);
+      expect(response.body.error).toContain('correo');
+    });
+
+    test('Debe retornar 500 si la BD falla en registro', async () => {
+      poolModule.query.mockRejectedValueOnce(new Error('DB Error'));
+      const response = await request(app)
+        .post('/auth/register')
+        .send({ nombre_usuario: 'usuario', correo: 'test@test.com', password: 'password123' });
+      expect(response.status).toBe(500);
+    });
+  });
+
+  describe('POST /auth/login - Casos adicionales', () => {
+    test('Debe retornar 400 si faltan correo y contraseña', async () => {
+      const response = await request(app)
+        .post('/auth/login')
+        .send({});
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('obligatorios');
+    });
+
+    test('Debe retornar 401 si el usuario no existe', async () => {
+      poolModule.query.mockResolvedValueOnce({ rows: [] });
+      const response = await request(app)
+        .post('/auth/login')
+        .send({ correo: 'noexiste@test.com', password: 'password123' });
+      expect(response.status).toBe(401);
+    });
+
+    test('Debe hacer login exitoso y retornar accessToken', async () => {
+      poolModule.query.mockResolvedValueOnce({
+        rows: [{ id: 1, correo: 'test@test.com', password_hash: 'hash', activo: true, nombre_usuario: 'user', rol: 'USER' }]
+      });
+      bcrypt.compare.mockResolvedValueOnce(true);
+      poolModule.audit.mockResolvedValueOnce(true);
+
+      const response = await request(app)
+        .post('/auth/login')
+        .send({ correo: 'test@test.com', password: 'password123' });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('accessToken');
+      expect(response.body.user.nombre_usuario).toBe('user');
+    });
+
+    test('Debe retornar 500 si la BD falla en login', async () => {
+      poolModule.query.mockRejectedValueOnce(new Error('DB Error'));
+      const response = await request(app)
+        .post('/auth/login')
+        .send({ correo: 'test@test.com', password: 'password123' });
+      expect(response.status).toBe(500);
+    });
+  });
+
+  describe('POST /auth/logout', () => {
+    test('Debe cerrar sesión correctamente', async () => {
+      poolModule.audit.mockResolvedValueOnce(true);
+      const response = await request(app).post('/auth/logout');
+      expect(response.status).toBe(200);
+      expect(response.body.message).toContain('cerrada');
+    });
+  });
+
+  describe('POST /auth/refresh - Casos adicionales', () => {
+    test('Debe renovar el token si el refresh token es válido', async () => {
+      const validToken = jwt.sign({ sub: 1 }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+      poolModule.query.mockResolvedValueOnce({
+        rows: [{ id: 1, nombre_usuario: 'user', rol: 'USER', activo: true }]
+      });
+
+      const response = await request(app)
+        .post('/auth/refresh')
+        .set('Cookie', [`refreshToken=${validToken}`]);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('accessToken');
+    });
+
+    test('Debe retornar 401 si el usuario está inactivo', async () => {
+      const validToken = jwt.sign({ sub: 1 }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+      poolModule.query.mockResolvedValueOnce({
+        rows: [{ id: 1, nombre_usuario: 'user', rol: 'USER', activo: false }]
+      });
+
+      const response = await request(app)
+        .post('/auth/refresh')
+        .set('Cookie', [`refreshToken=${validToken}`]);
+
+      expect(response.status).toBe(401);
+    });
+
+    test('Debe retornar 401 si el usuario no existe', async () => {
+      const validToken = jwt.sign({ sub: 99 }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
+      poolModule.query.mockResolvedValueOnce({ rows: [] });
+
+      const response = await request(app)
+        .post('/auth/refresh')
+        .set('Cookie', [`refreshToken=${validToken}`]);
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe('GET /auth/check-username', () => {
+    test('Debe retornar 400 si falta el parámetro username', async () => {
+      const response = await request(app).get('/auth/check-username');
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('username');
+    });
+
+    test('Debe retornar 409 si el username ya existe', async () => {
+      poolModule.query.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+      const response = await request(app)
+        .get('/auth/check-username')
+        .query({ username: 'existente' });
+      expect(response.status).toBe(409);
+      expect(response.body).toEqual({ available: false });
+    });
+
+    test('Debe retornar available true si el username no existe', async () => {
+      poolModule.query.mockResolvedValueOnce({ rows: [] });
+      const response = await request(app)
+        .get('/auth/check-username')
+        .query({ username: 'nuevo' });
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ available: true });
+    });
+  });

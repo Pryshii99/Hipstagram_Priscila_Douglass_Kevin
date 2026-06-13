@@ -150,3 +150,178 @@ describe('Pruebas Unitarias Completas - Módulo de Usuarios y Administración (u
     });
   });
 });
+describe('GET /users/me - Errores', () => {
+    test('Debe retornar 500 si la base de datos falla', async () => {
+      poolModule.query.mockRejectedValueOnce(new Error('DB Error'));
+      const response = await request(app).get('/users/me');
+      expect(response.status).toBe(500);
+      expect(response.body).toHaveProperty('error', 'Error al obtener el perfil.');
+    });
+
+    test('Debe manejar posts con imagen_url null', async () => {
+      poolModule.query.mockResolvedValueOnce({
+        rows: [{ id: 45, nombre_usuario: 'juan_dev' }]
+      });
+      poolModule.query.mockResolvedValueOnce({
+        rows: [{ id: 1, imagen_url: null, descripcion: 'Sin imagen' }]
+      });
+      const response = await request(app).get('/users/me');
+      expect(response.status).toBe(200);
+      expect(response.body.posts[0].imagen_url).toBeNull();
+    });
+  });
+
+  describe('GET /users/check - username disponible', () => {
+    test('Debe retornar available true si username no existe', async () => {
+      poolModule.query.mockResolvedValueOnce({ rows: [] });
+      const response = await request(app).get('/users/check').query({ username: 'nuevo_user' });
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ available: true });
+    });
+  });
+
+  describe('GET /users/admin/posts - Admin', () => {
+    test('Debe retornar posts pendientes como ADMIN', async () => {
+      mockContexto.rol = 'ADMIN';
+      poolModule.query.mockResolvedValueOnce({
+        rows: [{ id: 1, imagen_url: '/foto.png', nombre_usuario: 'admin' }]
+      });
+      const response = await request(app).get('/users/admin/posts');
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('posts');
+    });
+
+    test('Debe retornar 500 si la BD falla en admin/posts', async () => {
+      mockContexto.rol = 'ADMIN';
+      poolModule.query.mockRejectedValueOnce(new Error('DB Error'));
+      const response = await request(app).get('/users/admin/posts');
+      expect(response.status).toBe(500);
+    });
+  });
+
+  describe('PATCH /users/admin/posts/:id/:action - Rechazar post', () => {
+    test('Debe rechazar un post correctamente', async () => {
+      mockContexto.rol = 'ADMIN';
+      poolModule.query.mockResolvedValueOnce({ rowCount: 1 });
+      const response = await request(app).patch('/users/admin/posts/500/reject');
+      expect(response.status).toBe(200);
+      expect(response.body.message).toContain('rechazado');
+    });
+
+    test('Debe retornar 500 si falla la BD al moderar', async () => {
+      mockContexto.rol = 'ADMIN';
+      poolModule.query.mockRejectedValueOnce(new Error('DB Error'));
+      const response = await request(app).patch('/users/admin/posts/500/approve');
+      expect(response.status).toBe(500);
+    });
+  });
+
+  describe('GET /users/admin/users - Listar usuarios', () => {
+    test('Debe retornar lista de usuarios como ADMIN', async () => {
+      mockContexto.rol = 'ADMIN';
+      poolModule.query.mockResolvedValueOnce({
+        rows: [{ id: 1, nombre_usuario: 'admin', correo: 'admin@test.com' }]
+      });
+      const response = await request(app).get('/users/admin/users');
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('users');
+    });
+
+    test('Debe retornar 500 si la BD falla en admin/users', async () => {
+      mockContexto.rol = 'ADMIN';
+      poolModule.query.mockRejectedValueOnce(new Error('DB Error'));
+      const response = await request(app).get('/users/admin/users');
+      expect(response.status).toBe(500);
+    });
+  });
+
+  describe('PATCH /users/admin/users/:id/status - Cambiar estado usuario', () => {
+    test('Debe activar un usuario correctamente', async () => {
+      mockContexto.rol = 'ADMIN';
+      poolModule.query.mockResolvedValueOnce({ rowCount: 1 });
+      const response = await request(app)
+        .patch('/users/admin/users/10/status')
+        .send({ activo: true });
+      expect(response.status).toBe(200);
+      expect(response.body.message).toContain('activado');
+    });
+
+    test('Debe desactivar un usuario correctamente', async () => {
+      mockContexto.rol = 'ADMIN';
+      poolModule.query.mockResolvedValueOnce({ rowCount: 1 });
+      const response = await request(app)
+        .patch('/users/admin/users/10/status')
+        .send({ activo: false });
+      expect(response.status).toBe(200);
+      expect(response.body.message).toContain('desactivado');
+    });
+
+    test('Debe retornar 500 si falla la BD', async () => {
+      mockContexto.rol = 'ADMIN';
+      poolModule.query.mockRejectedValueOnce(new Error('DB Error'));
+      const response = await request(app)
+        .patch('/users/admin/users/10/status')
+        .send({ activo: true });
+      expect(response.status).toBe(500);
+    });
+  });
+
+  describe('GET /users/admin/banned-words', () => {
+    test('Debe retornar la lista de palabras prohibidas', async () => {
+      mockContexto.rol = 'ADMIN';
+      const response = await request(app).get('/users/admin/banned-words');
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('banned');
+    });
+  });
+
+  describe('GET /users/admin/audit', () => {
+    test('Debe retornar registros de auditoría', async () => {
+      mockContexto.rol = 'ADMIN';
+      poolModule.query.mockResolvedValueOnce({
+        rows: [{ id: 1, accion: 'LOGIN', nombre_usuario: 'admin' }]
+      });
+      const response = await request(app).get('/users/admin/audit');
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('registros');
+    });
+
+    test('Debe retornar 500 si falla la BD en audit', async () => {
+      mockContexto.rol = 'ADMIN';
+      poolModule.query.mockRejectedValueOnce(new Error('DB Error'));
+      const response = await request(app).get('/users/admin/audit');
+      expect(response.status).toBe(500);
+    });
+  });
+
+  describe('GET /users/:id - Perfil externo', () => {
+    test('Debe retornar perfil de usuario con posts', async () => {
+      poolModule.query.mockResolvedValueOnce({
+        rows: [{ id: 10, nombre_usuario: 'otro_user', fecha_creacion: new Date() }]
+      });
+      poolModule.query.mockResolvedValueOnce({
+        rows: [{ id: 1, imagen_url: 'https://s3.com/foto.png', likes_count: 5 }]
+      });
+      const response = await request(app).get('/users/10');
+      expect(response.status).toBe(200);
+      expect(response.body.user.nombre_usuario).toBe('otro_user');
+    });
+
+    test('Debe manejar posts con imagen_url null en perfil externo', async () => {
+      poolModule.query.mockResolvedValueOnce({
+        rows: [{ id: 10, nombre_usuario: 'otro_user' }]
+      });
+      poolModule.query.mockResolvedValueOnce({
+        rows: [{ id: 1, imagen_url: null, likes_count: 0 }]
+      });
+      const response = await request(app).get('/users/10');
+      expect(response.status).toBe(200);
+      expect(response.body.posts[0].imagen_url).toBeNull();
+    });
+
+    test('Debe retornar 500 si falla la BD en /:id', async () => {
+      poolModule.query.mockRejectedValueOnce(new Error('DB Error'));
+      const response = await request(app).get('/users/10');
+      expect(response.status).toBe(500);
+    });
+  });
