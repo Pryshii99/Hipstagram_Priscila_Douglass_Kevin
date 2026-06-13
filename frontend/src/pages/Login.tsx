@@ -64,7 +64,7 @@ export default function LoginPage() {
         <div className="text-center mb-4">
           <div className="hip-logo-icon hip-logo-glow"><i className="bi bi-camera2"></i></div>
           <h1 className="hip-logo-title hip-logo-glow">Hipstagram</h1>
-          <p className="hip-logo-sub text-white-50">Comparte tu mundo en imágenes</p>
+          <p className="hip-logo-sub text-white-50">Comparte tu mundo en imágenes En la calificaci[on</p>
         </div>
 
         {error && (
